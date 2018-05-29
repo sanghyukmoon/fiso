@@ -1,8 +1,10 @@
-import numpy as n
-import pylab as p
-import matplotlib.colors as mco
-import scipy.ndimage as sn
+# a few tools to help plot isocontours
+
 import sys
+import numpy as n
+import matplotlib.colors as mco
+import pylab as p
+import scipy.ndimage as sn
 
 def mesh(x,y,z):
     p.pcolormesh(x,y,z,norm=mco.LogNorm(),shading='flat',edgecolors='none')
