@@ -163,7 +163,7 @@ def find_minima_pcn(dlist,pcn):
     # method is 10x slower than sn.minimum_filter but more general
     return (dlist < n.min(dlist[pcn],axis=0))
 
-def boundary_pcn(coords,shape,corner=True,mode0='clip'):
+def boundary_pcn(coords,shape,corner=True,mode='clip'):
     '''given an array shape, find the neighbor indices of given coordinates'''
     lc = len(coords.shape) - 1
     offs = [-1,0,1]   
@@ -178,7 +178,7 @@ def boundary_pcn(coords,shape,corner=True,mode0='clip'):
     #total length lc+2, duplication over neighbors coordsel[1]
     coordsel[1] = None
     newcoords = coords[coordsel] + n.transpose(itp)[sel]      
-    output = n.ravel_multi_index(newcoords,shape,mode=mode0).reshape(len(itp),-1)    
+    output = n.ravel_multi_index(newcoords,shape,mode=mode).reshape(len(itp),-1)    
     return output 
 
 def gbi(shape,dtype):     
