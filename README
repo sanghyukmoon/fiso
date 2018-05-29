@@ -6,6 +6,8 @@ Fast isocontours
 
 Fast is Simple, Optimal
 
+Note: due to historical development and laziness, the returned regions are sometimes referred to as "core," "clump," "cloud," "isocontour," "iso," or "fiso."
+
 # Problem
 
 Compute the largest isocontours around minima of n-D fields such that each isocontour only contains 1 local minimum.
@@ -14,17 +16,19 @@ Compute the largest isocontours around minima of n-D fields such that each isoco
 
 Given a numpy n-D array, run:
 
-> isodict, labels = fiso.find(array)
+    isodict, labels = fiso.find(array)
 
 Note:
 
-All cells are given an index, their final position in array.reshape(-1)
+All cells are given an index, their final position in:
+
+    array.reshape(-1)
 
 To convert from index to coordinates in original n-D array:
 
-> index = numpy.ravel_multi_index(coord,shape)
+    index = numpy.ravel_multi_index(coord,shape)
 
-> coord = numpy.unravel_index(index,shape)
+    coord = numpy.unravel_index(index,shape)
 
 
 # Isodict
@@ -40,19 +44,23 @@ index>-1: Index of cell of the local minimum this cell belongs to.
 
 # Advanced
 
-fiso.verbose = False
+    fiso.verbose = False
+
 Turn off debug messages
 
-fiso.find(array,cut=value)
+    fiso.find(array,cut=value)
+
 Optional parameter cut, stops search when cell value = cut
 
-fiso.find_minima
+    fiso.find_minima
+
 Change this function to change the initial definition of local minima
 Only occurence of scipy.ndimage
 Only place where 3-D is assumed
 
-fiso.gbi
-fiso.precompute_neighbor3
+    fiso.gbi
+    fiso.precompute_neighbor3
+
 Change functions related to computing indices of neighboring cells for 
 more complicated geometries or boundary conditions
 
