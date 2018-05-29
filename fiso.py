@@ -5,7 +5,12 @@ from itertools import islice
 import itertools
 from collections import deque
 
+# printing extra diagnostic messages
 verbose = True
+# how to determine neighbors of boundary cells
+boundary_mode = 'clip'
+# whether diagonal cells are neighbors
+corner_bool = True 
 time.prevtime = time.time()
 
 def timer(string=''):
@@ -53,7 +58,7 @@ def find(data,cut=''):
     timer('init minima')
 
     #precompute neighbor indices 
-    pcn = precompute_neighbor(dshape)
+    pcn = precompute_neighbor(dshape,corner=corner_bool)
     timer('precompute neighbor indices')
     
     #loop
@@ -132,16 +137,33 @@ def find(data,cut=''):
 #if neighor is in an inactive core, don't add to core
 #if 2 or more neighbors are in different cores, dont add to a core. 
 
-def find_minima(arr):
-    #nhbd = sn.generate_binary_structure(len(arr.shape),1) #neighborhood
+def find_minima_default(arr):
     nhbd = sn.generate_binary_structure(len(arr.shape),3) #neighborhood
     local_min = (sn.filters.minimum_filter(arr, footprint=nhbd, mode='reflect')==arr)
     return local_min
 
+def find_minima_nocorner(arr):
+    nhbd = sn.generate_binary_structure(len(arr.shape),1) #neighborhood
+    local_min = (sn.filters.minimum_filter(arr, footprint=nhbd, mode='reflect')==arr)
+    return local_min
+
+def find_minima_wrap(arr):
+    nhbd = sn.generate_binary_structure(len(arr.shape),3) #neighborhood
+    local_min = (sn.filters.minimum_filter(arr, footprint=nhbd, mode='wrap')==arr)
+    return local_min
+
+find_minima = find_minima_default
+
 def find_minima_flat(arr):
     return find_minima(arr).reshape(-1)
 
-def boundary_pcn(coords,shape,corner=True):
+def find_minima_pcn(dlist,pcn):
+    # go from flattened array and pcn to flat
+    # compare each cell to its neighbors according to pcn
+    # method is 10x slower than sn.minimum_filter but more general
+    return (dlist < n.min(dlist[pcn],axis=0))
+
+def boundary_pcn(coords,shape,corner=True,mode0='clip'):
     '''given an array shape, find the neighbor indices of given coordinates'''
     lc = len(coords.shape) - 1
     offs = [-1,0,1]   
@@ -156,7 +178,7 @@ def boundary_pcn(coords,shape,corner=True):
     #total length lc+2, duplication over neighbors coordsel[1]
     coordsel[1] = None
     newcoords = coords[coordsel] + n.transpose(itp)[sel]      
-    output = n.ravel_multi_index(newcoords,shape,mode='clip').reshape(len(itp),-1)    
+    output = n.ravel_multi_index(newcoords,shape,mode=mode0).reshape(len(itp),-1)    
     return output 
 
 def gbi(shape,dtype):     
@@ -225,7 +247,7 @@ def precompute_neighbor(shape,corner=True):
     for i in range(lc):                                              
         boundary_coords[i] = boundary_coords[i].reshape(1,1,-1)      
     boundary_coords = n.array(boundary_coords,dtype=dtype)           
-    bcn = boundary_pcn(boundary_coords,shape,corner=True)                 
+    bcn = boundary_pcn(boundary_coords,shape,corner=corner_bool,mode=boundary_mode)                 
     #pcn shape num_neighbors x cells
     #bcn shape num_neighbors x cells
     pcn[:,boundary_indices] = bcn                                    
