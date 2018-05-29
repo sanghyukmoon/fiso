@@ -13,13 +13,18 @@ Compute the largest isocontours around minima of n-D fields such that each isoco
 # Solution
 
 Given a numpy n-D array, run:
-isodict, labels = fiso.find(array)
+
+> isodict, labels = fiso.find(array)
 
 Note:
+
 All cells are given an index, their final position in array.reshape(-1)
+
 To convert from index to coordinates in original n-D array:
-index = numpy.ravel_multi_index(coord,shape)
-coord = numpy.unravel_index(index,shape)
+
+> index = numpy.ravel_multi_index(coord,shape)
+
+> coord = numpy.unravel_index(index,shape)
 
 
 # Isodict
@@ -31,7 +36,7 @@ A dictionary of keys,values. Each key is the integer index of the local minimum 
 A 1-D array of labels corresponding to each cell
 -1: Never touched, higher value cells
 -2: Processed without assignment (not part of core)
->-1: Index of cell of the local minimum this cell belongs to. 
+index>-1: Index of cell of the local minimum this cell belongs to. 
 
 # Advanced
 
