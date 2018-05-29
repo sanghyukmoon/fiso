@@ -1,0 +1,7 @@
+*.png
+*.pyc
+*~
+*.npy
+*.pdf
+*.gif
+test/
