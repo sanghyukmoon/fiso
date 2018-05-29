@@ -61,7 +61,8 @@ def find(data,cut=''):
 
     #precompute neighbor indices 
     pcn = precompute_neighbor3(dshape)
-
+    timer('precompute neighbor indices')
+    
     #loop
     indices = iter(range(cutoff))
     for i in indices:
