@@ -2,7 +2,6 @@ import numpy as n
 import pylab as p
 import matplotlib.colors as mco
 import scipy.ndimage as sn
-import code_tools as ct
 import sys
 
 def mesh(x,y,z):
