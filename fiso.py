@@ -63,7 +63,7 @@ def find(data,cut=''):
     pcn = precompute_neighbor3(dshape)
 
     #loop
-    indices = iter(xrange(cutoff))
+    indices = iter(range(cutoff))
     for i in indices:
         #grab unique neighbor labels
         nli = pcn[:,order[i]]
