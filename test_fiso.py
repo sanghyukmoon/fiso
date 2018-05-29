@@ -7,7 +7,7 @@ import pylab as p
 import fiso
 import fiso_contour as fc
 
-size = 256
+size = 128
 shape = [size]*3
 x,y,z = n.indices(shape)
 # set up potential with 4 point sources
@@ -45,10 +45,10 @@ def plots(field):
     p.title('Only Core phi')
     phi = -field
     p.subplot(2,2,3)
-    fc.plot_fiso_slice(-phi,phi,coredict,coredict.keys()[0])
+    fc.plot_fiso_slice(-phi,phi,coredict,list(coredict.keys())[0])
 
     p.subplot(2,2,4)
-    fc.plot_fiso_slice(-phi,phi,coredict,coredict.keys()[1])
+    fc.plot_fiso_slice(-phi,phi,coredict,list(coredict.keys())[1])
     
     p.savefig('test.png')
     

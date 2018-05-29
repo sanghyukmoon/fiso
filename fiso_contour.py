@@ -34,13 +34,13 @@ def calc_slice(core_dict,index,shape):
     cmin = n.min(coords,axis=1) #min of each dimension
     ccenter = (cmax+cmin)/2 #center of each dimension
     csize = n.max(cmax - cmin) #size of each dimension
-    slices = range(len(cmax))
+    slices = len(cmax)*[None]
     for i in range(len(cmax)):
         smin = max(ccenter[i]-csize,0)
         smax = min(ccenter[i]+csize,shape[i])
-        slices[i] = slice(smin,smax) 
+        slices[i] = slice(int(smin),int(smax)) 
         # how to slice 3D array
-        newcoords[i] = coords[i] - smin 
+        newcoords[i] = (coords[i] - smin ).astype(int)
         # coordinates for 3-D projected mask
         slicecoords[i] = newcoords[i][coords[2] == center_coord] 
         # coords for 2-D planar mask
@@ -50,10 +50,8 @@ def plot_fiso_slice(rho,phi,core_dict,index):
     slices, newcoords, slicecoords = calc_slice(core_dict,index,rho.shape)
     center_coord = n.unravel_index(index,rho.shape)[2]
     core_phi = phi[slices][newcoords]
-    # phie was in case I needed a half step in phi
-    # phie = n.min(n.diff(n.sort(core_phi)))
     phi0 = n.min(core_phi)
-    phi1 = n.max(core_phi) #+ phie/2.
+    phi1 = n.max(core_phi)
     conres = 5.
     dphi = (phi1-phi0)/conres
     phi_levels = n.arange(phi0,phi1+conres*dphi,dphi)
