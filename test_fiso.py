@@ -1,9 +1,9 @@
 
 import numpy as n
-import pylab as p
 import matplotlib
 import matplotlib.colors as mco
 matplotlib.use('agg')
+import pylab as p
 import fiso
 import fiso_contour as fc
 

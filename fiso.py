@@ -61,9 +61,10 @@ def find(data,cut=''):
 
     #precompute neighbor indices 
     pcn = precompute_neighbor3(dshape)
-
+    timer('precompute neighbor indices')
+    
     #loop
-    indices = iter(xrange(cutoff))
+    indices = iter(range(cutoff))
     for i in indices:
         #grab unique neighbor labels
         nli = pcn[:,order[i]]
@@ -158,22 +159,6 @@ def find_minima(arr,arrmin):
 def find_minima_flat(arr,arrmin):
     return find_minima(arr,arrmin).reshape(-1)
 
-def precompute_neighbor(shape):
-    coords = n.indices(shape)
-    output = range(len(shape)*2)
-    index = 0
-    for dimi in range(len(shape)):
-        for offset in [-1,1]:
-            newcoords = coords.copy()
-            newcoords[dimi] += offset
-            output[index] = n.ravel_multi_index(newcoords,shape,mode='clip').reshape(-1)
-            index += 1
-    return n.array(output)
-
-def precompute_neighbor2(shape,corner=True):      
-    coords = n.indices(shape) 
-    return subpcn2(coords,shape,corner=corner)
-
 def subpcn2(coords,shape,corner=True):
     '''given an array shape, find the neighbor indices of given coordinates'''
     lc = len(coords.shape) - 1
@@ -200,7 +185,7 @@ def gbi(shape,dtype):
     basel = ls*[None] #array slice none to extend array dimension
     idx = range(ls) #index for loops
     #dni is the coords for dimension "i"
-    dni = range(ls) 
+    dni = ls*[None]
     for i in idx:   
         dni[i] = n.arange(shape[i],dtype=dtype)   
 
@@ -208,7 +193,7 @@ def gbi(shape,dtype):
     #0 or end
     for i in idx:   
 
-        ndnis = range(ls) 
+        ndnis = ls*[None]
         shapei = shape[:] #copy shape
         shapei[i] = 1     #set dimension i to 1 (flat boundary)
         nzs = n.zeros(shapei,dtype=dtype) #initialize boundary to 0 
