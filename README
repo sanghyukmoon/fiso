@@ -58,11 +58,17 @@ Change this function to change the initial definition of local minima
 Only occurence of scipy.ndimage
 Only place where 3-D is assumed
 
+    fiso.boundary_pcn
     fiso.gbi
-    fiso.precompute_neighbor3
+    fiso.precompute_neighbor
 
 Change functions related to computing indices of neighboring cells for 
-more complicated geometries or boundary conditions
+more complicated geometries or boundary conditions. fiso.gbi gets the boundary indices and gives them to fiso.precompute_neighbor, which then uses fiso.boundary_pcn to set the neighbor indices of the boundary cells.
+
+Default boundary condition:
+fiso.boundary_pcn clips the boundary in numpy.ravel_multi_index, so that the neighbors include itself, but do not extend past the box. Since the algorithm only depends on lesser neighbors, a cell can "neighbor" itself without problems. 
+fiso.find_minima also clips the box. The default mode of scipy.ndimage.filters.minimum_filter is "reflect". 
+
 
 # Other Files
 

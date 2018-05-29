@@ -1,11 +1,6 @@
-
+import sys
 import numpy as n
-import matplotlib
-import matplotlib.colors as mco
-matplotlib.use('agg')
-import pylab as p
 import fiso
-import fiso_contour as fc
 
 size = 128
 shape = [size]*3
@@ -27,6 +22,17 @@ point(f2,f2,zlist[3])
 coredict,labels = fiso.find(potential)
 #here, find field maxima
 labels = labels.reshape(shape)
+if len(sys.argv) > 1:
+    exit()
+
+
+import matplotlib
+import matplotlib.colors as mco
+matplotlib.use('agg')
+import pylab as p
+import fiso_contour as fc
+
+
 def mesh(arr):                                                            
     p.pcolormesh(n.arange(size),n.arange(size),arr,shading='flat',edgecolors='none',norm=mco.LogNorm())  
 
@@ -49,7 +55,6 @@ def plots(field):
 
     p.subplot(2,2,4)
     fc.plot_fiso_slice(-phi,phi,coredict,list(coredict.keys())[1])
-    
     p.savefig('test.png')
     
 plots(-potential)
