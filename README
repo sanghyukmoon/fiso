@@ -38,8 +38,11 @@ A dictionary of keys,values. Each key is the integer index of the local minimum 
 # Labels
 
 A 1-D array of labels corresponding to each cell
+
 -1: Never touched, higher value cells
+
 -2: Processed without assignment (not part of core)
+
 index>-1: Index of cell of the local minimum this cell belongs to. 
 
 # Advanced
@@ -54,16 +57,30 @@ Optional parameter cut, stops search when cell value = cut
 
     fiso.find_minima
 
-Change this function to change the initial definition of local minima
-Only occurence of scipy.ndimage
-Only place where 3-D is assumed
+Change this function to change the initial definition of local minima.
+
+Example:
+
+    import fiso
+    fiso.find_minima = fiso.find_minima_wrap
+
+To be self consistent with the definition of "neighbors" on the boundary, also set:
+
+   fiso.boundary_mode = 'wrap'
+   fiso.corner_bool = True
+
+Only occurrence of scipy.ndimage is in find_minima. 
 
     fiso.boundary_pcn
     fiso.gbi
     fiso.precompute_neighbor
 
 Change functions related to computing indices of neighboring cells for 
-more complicated geometries or boundary conditions. fiso.gbi gets the boundary indices and gives them to fiso.precompute_neighbor, which then uses fiso.boundary_pcn to set the neighbor indices of the boundary cells.
+more complicated geometries or boundary conditions.
+
+fiso.gbi gets the boundary indices and gives them to fiso.precompute_neighbor, which then uses
+
+fiso.boundary_pcn to set the neighbor indices of the boundary cells.
 
 Default boundary condition:
 fiso.boundary_pcn clips the boundary in numpy.ravel_multi_index, so that the neighbors include itself, but do not extend past the box. Since the algorithm only depends on lesser neighbors, a cell can "neighbor" itself without problems. 
@@ -73,5 +90,7 @@ fiso.find_minima also clips the box. The default mode of scipy.ndimage.filters.m
 # Other Files
 
 test_core.py contains an example with 4 point particles with smoothing
+
 fiso_contour.py contains code for showing contours
+
 test.png is the output of test_core.py
