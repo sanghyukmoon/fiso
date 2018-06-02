@@ -64,9 +64,12 @@ def find(data,cut=''):
     #loop
     indices = iter(range(cutoff))
     # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
+    # note looping over i and getting order[i]
+    # is only 1% slower than iter(order)
     for i in indices:
+        orderi = order[i]
         #grab unique neighbor labels
-        nli = pcn[:,order[i]]
+        nli = pcn[:,orderi]
         nls = n.array(list(set(labels[nli])))
         #nls = n.unique(labels[nli]) #this is much slower
         #nnc = (nls >= 0).sum() #this is 2x slower
@@ -76,8 +79,8 @@ def find(data,cut=''):
         
         #first note this cell has been explored
 
-        if labels[order[i]] == -1:
-            labels[order[i]] = -2
+        if labels[orderi] == -1:
+            labels[orderi] = -2
         else:
             # if this cell was already explored, it was an original core
             continue
@@ -94,8 +97,8 @@ def find(data,cut=''):
                 #only 1 neighbor, inherit
                 #use nls0[0] instead of max(nls)?
                 if max(nls) in active_cores:
-                    labels[order[i]] = max(nls) 
-                    core_dict[max(nls)].append(order[i])   
+                    labels[orderi] = max(nls) 
+                    core_dict[max(nls)].append(orderi)   
                     #inherit from neighbor, only 1 is positive/max
                 continue
             elif (nnc == 2):
@@ -113,8 +116,8 @@ def find(data,cut=''):
                         active_cores.remove(nls0[smaller])
                         core_dict.pop(nls0[smaller])
 
-                        labels[order[i]] = nls0[larger] 
-                        core_dict[nls0[larger]].append(order[i])
+                        labels[orderi] = nls0[larger] 
+                        core_dict[nls0[larger]].append(orderi)
                         continue
 
             #There are 2 or more large neighbors to deactivate
@@ -129,7 +132,8 @@ def find(data,cut=''):
                         next(islice(indices,cutoff-i-1,cutoff-i-1),None)
                         #skip up to next core or end
     dt = timer('loop finished for ' + str(cutoff) + ' items')
-    if verbose: print(str(dt/cutoff) + ' per item')
+    if verbose: print(str(dt/i) + ' per cell')
+    if verbose: print(str(dt/cutoff) + ' per total cell')
     return core_dict,labels
 
 #if alone, start new core
