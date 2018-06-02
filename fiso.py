@@ -64,8 +64,9 @@ def find(data,cut=''):
     #loop
     indices = iter(range(cutoff))
     # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
-    # note looping over i and getting order[i]
-    # is only 1% slower than iter(order)
+    # note looping over i and getting order[i] is only
+    # 1% slower than iter over order
+    # added convenience of smooth exit from loop
     for i in indices:
         orderi = order[i]
         #grab unique neighbor labels
@@ -96,9 +97,10 @@ def find(data,cut=''):
             if (nnc == 1):
                 #only 1 neighbor, inherit
                 #use nls0[0] instead of max(nls)?
-                if max(nls) in active_cores:
-                    labels[orderi] = max(nls) 
-                    core_dict[max(nls)].append(orderi)   
+                inherit = nls0[0]
+                if inherit in active_cores:
+                    labels[orderi] = inherit
+                    core_dict[inherit].append(orderi)   
                     #inherit from neighbor, only 1 is positive/max
                 continue
             elif (nnc == 2):
