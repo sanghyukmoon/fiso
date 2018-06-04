@@ -50,48 +50,22 @@ def setup(data,cut):
         core_dict[mini] = deque([mini])
     labels[mfw] = mfw
     active_cores = list(mfw) #real index
-    return core_dict,labels,active_cores,length,order,cutoff
+    timer('init minima')
+
+    #precompute neighbor indices 
+    pcn = precompute_neighbor(dshape,corner=corner_bool)
+    timer('precompute neighbor indices')
+
+    return core_dict,labels,active_cores,length,order,cutoff,pcn
 
 
 
 def find(data,cut=''):
     #take in 3d data
     #find iso
-    timer()
-    #prepare data
-    dshape = data.shape
-    dlist = data.reshape(-1) #COPY
-    order = dlist.argsort() #an array of real index locations #COPY
-
-    timer('sort')
-    length = len(order)
-    cutoff = length #number of cells to process
-    #optional cutoff
-    if type(cut) is float:
-        cutoff = n.searchsorted(dlist[order],cut)
-        
-    #timer('init short')
-    minima_flat = find_minima_flat(data)
-    #indices of the minima in original
-    mfw = n.where(minima_flat)[0]
-    #mfw is real index
-    if verbose: print(len(mfw),'minima')
-
-    #core dict and labels setup
-    core_dict = {}
-    labels = -n.ones(length,dtype=int) #indices are real index locations
-    #inside loop, labels are accessed by labels[order[i]]
-    for mini in mfw:
-        core_dict[mini] = deque([mini])
-    labels[mfw] = mfw
-    active_cores = list(mfw) #real index
+    #setup
+    core_dict,labels,active_cores,length,order,cutoff,pcn = setup(data,cut)
     inactive_cores = [] #real index
-    timer('init minima')
-
-    #precompute neighbor indices 
-    pcn = precompute_neighbor(dshape,corner=corner_bool)
-    timer('precompute neighbor indices')
-    
     #loop
     indices = iter(range(cutoff))
     # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
@@ -101,8 +75,10 @@ def find(data,cut=''):
     for i in indices:
         orderi = order[i]
         #grab unique neighbor labels
-        nli = pcn[:,orderi]
-        nls = n.array(list(set(labels[nli])))
+        # nli = pcn[:,orderi]
+        nls = n.array(list(set(labels[
+            pcn[:,orderi]
+        ])))
         #nls = n.unique(labels[nli]) #this is much slower
         #nnc = (nls >= 0).sum() #this is 2x slower
         nls0 = nls[nls >= 0]        
@@ -138,19 +114,8 @@ def find(data,cut=''):
                     l0 = len(core_dict[nls0[0]])
                     l1 = len(core_dict[nls0[1]])
                     if min(l0,l1) < 27:
-                        smaller = n.argmin([l0,l1])
-                        larger = 1-smaller
-                        #add smaller core cells to larger dict
-                        core_dict[nls0[larger]] += core_dict[nls0[smaller]]
-                        #relabel smaller core cells to larger
-                        labels[core_dict[nls0[smaller]]] = nls0[larger]
-                        active_cores.remove(nls0[smaller])
-                        core_dict.pop(nls0[smaller])
-
-                        labels[orderi] = nls0[larger] 
-                        core_dict[nls0[larger]].append(orderi)
+                        subsume(l0,l1,orderi,nls0,core_dict,labels,active_cores)
                         continue
-
             #There are 2 or more large neighbors to deactivate
             #corei is real index
             collide(active_cores,nls0)
@@ -280,7 +245,7 @@ def precompute_neighbor(shape,corner=True):
     for i in range(lc):                                              
         boundary_coords[i] = boundary_coords[i].reshape(1,1,-1)      
     boundary_coords = n.array(boundary_coords,dtype=dtype)           
-    bcn = boundary_pcn(boundary_coords,shape,corner=corner_bool,mode=boundary_mode)                 
+    bcn = boundary_pcn(boundary_coords,shape,corner=corner,mode=boundary_mode)                 
     #pcn shape num_neighbors x cells
     #bcn shape num_neighbors x cells
     pcn[:,boundary_indices] = bcn                                    
@@ -292,3 +257,16 @@ def collide(active_cores,nls0):
         if nlsi in active_cores:
             active_cores.remove(nlsi)
 
+def subsume(l0,l1,orderi,nls0,core_dict,labels,active_cores):
+    smaller = n.argmin([l0,l1])
+    larger = 1-smaller
+    #add smaller core cells to larger dict
+    core_dict[nls0[larger]] += core_dict[nls0[smaller]]
+    #relabel smaller core cells to larger
+    labels[core_dict[nls0[smaller]]] = nls0[larger]
+    active_cores.remove(nls0[smaller])
+    core_dict.pop(nls0[smaller])
+    
+    labels[orderi] = nls0[larger] 
+    core_dict[nls0[larger]].append(orderi)
+                        

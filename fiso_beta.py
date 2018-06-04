@@ -29,8 +29,7 @@ def setup(data,cut):
     order = dlist.argsort() #an array of real index locations #COPY
 
     timer('sort')
-    length = len(order)
-    cutoff = length #number of cells to process
+    cutoff = len(order) #number of cells to process
     #optional cutoff
     if type(cut) is float:
         cutoff = n.searchsorted(dlist[order],cut)
@@ -44,7 +43,7 @@ def setup(data,cut):
 
     #core dict and labels setup
     core_dict = {}
-    labels = -n.ones(length,dtype=int) #indices are real index locations
+    labels = -n.ones(len(order),dtype=int) #indices are real index locations
     #inside loop, labels are accessed by labels[order[i]]
     for mini in mfw:
         core_dict[mini] = deque([mini])
@@ -56,15 +55,13 @@ def setup(data,cut):
     pcn = precompute_neighbor(dshape,corner=corner_bool)
     timer('precompute neighbor indices')
 
-    return core_dict,labels,active_cores,length,order,cutoff,pcn
-
-
+    return core_dict,labels,active_cores,order,cutoff,pcn
 
 def find(data,cut=''):
     #take in 3d data
     #find iso
     #setup
-    core_dict,labels,active_cores,length,order,cutoff,pcn = setup(data,cut)
+    core_dict,labels,active_cores,order,cutoff,pcn = setup(data,cut)
     inactive_cores = [] #real index
     #loop
     indices = iter(range(cutoff))
@@ -77,7 +74,7 @@ def find(data,cut=''):
         #grab unique neighbor labels
         # nli = pcn[:,orderi]
         nls = n.array(list(set(labels[
-            pcn[:,orderi]
+            pcn[orderi]
         ])))
         #nls = n.unique(labels[nli]) #this is much slower
         #nnc = (nls >= 0).sum() #this is 2x slower
@@ -101,7 +98,6 @@ def find(data,cut=''):
                 continue
             if (nnc == 1):
                 #only 1 neighbor, inherit
-                #use nls0[0] instead of max(nls)?
                 inherit = nls0[0]
                 if inherit in active_cores:
                     labels[orderi] = inherit
@@ -161,23 +157,18 @@ def find_minima_pcn(dlist,pcn):
     # method is 10x slower than sn.minimum_filter but more general
     return (dlist < n.min(dlist[pcn],axis=0))
 
-def boundary_pcn(coords,shape,corner=True,mode='clip'):
-    '''given an array shape, find the neighbor indices of given coordinates'''
-    lc = len(coords.shape) - 1
-    offs = [-1,0,1]   
-    itp = list(itertools.product(offs,repeat=lc))     
-    if corner:
-        itp.remove((0,)*lc)       
-    else:
-        itp = [i for i in itp if i.count(0) == 2]
-    sel = [slice(None)] + [slice(None)] + [None] * lc 
-    #2 for going through all itp, duplicate to fit coords [3,:,:,:]
-    coordsel = [slice(None)]*(lc+2)   
-    #total length lc+2, duplication over neighbors coordsel[1]
-    coordsel[1] = None
-    newcoords = coords[coordsel] + n.transpose(itp)[sel]      
-    output = n.ravel_multi_index(newcoords,shape,mode=mode).reshape(len(itp),-1)    
-    return output 
+
+def boundary_pcn(coords,itp,shape,corner,mode='clip'):
+    newcoords = coords[:,:,None] + n.transpose(itp)[:,None,:]
+    output = n.ravel_multi_index(newcoords,shape,mode=mode)
+    return output
+    # start with coords of shape dim,num_coords
+    # for each num_coords, add one of the many itp
+    # itp has shape num_neighbors,dim
+    # n.transpose(itp)
+    # dim, num_neighbors
+    # want something of shape dim,num_coords,num_neighbors
+    # num_coords, num_neighbors
 
 def gbi(shape,dtype):     
     '''get boundary indices from shape'''   
@@ -235,22 +226,17 @@ def precompute_neighbor(shape,corner=True):
     itp = n.array(itp,dtype=dtype)
     displacements = (itp*factor).sum(axis=1)                         
     #displacements is num_neighbors 1-d array
-    indices = n.arange(nps,dtype=dtype)[None]
+    indices = n.arange(nps,dtype=dtype)[:,None]
     #indices is 1-d array, 1 for each cell
-    pcn = indices + displacements[:,None] 
+    pcn = indices + displacements[None] 
     #pcn is 2-d array using :,None to combine 
     #apply boundary correction mode='clip' set in boundary_pcn
     boundary_indices = gbi(shape,dtype)                              
-    boundary_coords = list(n.array(n.unravel_index(boundary_indices,shape),dtype=dtype))                                                 
-    for i in range(lc):                                              
-        boundary_coords[i] = boundary_coords[i].reshape(1,1,-1)      
-    boundary_coords = n.array(boundary_coords,dtype=dtype)           
-    bcn = boundary_pcn(boundary_coords,shape,corner=corner_bool,mode=boundary_mode)                 
+    boundary_coords = n.array(n.unravel_index(boundary_indices,shape),dtype=dtype)
     #pcn shape num_neighbors x cells
     #bcn shape num_neighbors x cells
-    pcn[:,boundary_indices] = bcn                                    
+    pcn[boundary_indices,:] = boundary_pcn(boundary_coords,itp,shape,corner,mode=boundary_mode)
     return pcn          
-
 
 def collide(active_cores,nls0):
     for nlsi in nls0:
