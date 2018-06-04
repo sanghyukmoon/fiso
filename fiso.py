@@ -21,6 +21,39 @@ def timer(string=''):
         if verbose: print(string,str(dt) + " seconds elapsed")
     return dt
 
+def setup(data,cut):
+    timer()
+    #prepare data
+    dshape = data.shape
+    dlist = data.reshape(-1) #COPY
+    order = dlist.argsort() #an array of real index locations #COPY
+
+    timer('sort')
+    length = len(order)
+    cutoff = length #number of cells to process
+    #optional cutoff
+    if type(cut) is float:
+        cutoff = n.searchsorted(dlist[order],cut)
+        
+    #timer('init short')
+    minima_flat = find_minima_flat(data)
+    #indices of the minima in original
+    mfw = n.where(minima_flat)[0]
+    #mfw is real index
+    if verbose: print(len(mfw),'minima')
+
+    #core dict and labels setup
+    core_dict = {}
+    labels = -n.ones(length,dtype=int) #indices are real index locations
+    #inside loop, labels are accessed by labels[order[i]]
+    for mini in mfw:
+        core_dict[mini] = deque([mini])
+    labels[mfw] = mfw
+    active_cores = list(mfw) #real index
+    return core_dict,labels,active_cores,length,order,cutoff
+
+
+
 def find(data,cut=''):
     #take in 3d data
     #find iso
@@ -29,8 +62,6 @@ def find(data,cut=''):
     dshape = data.shape
     dlist = data.reshape(-1) #COPY
     order = dlist.argsort() #an array of real index locations #COPY
-    dmin = dlist[order[0]]
-    dmax = dlist[order[-1]]
 
     timer('sort')
     length = len(order)
@@ -88,11 +119,9 @@ def find(data,cut=''):
         if (nnc > 0):
             if -2 in nls:
                 #a neighbor is previously explored but not cored (boundary), deactivate cores
-                for nlsi in nls0:
-                    if nlsi in active_cores:
-                        active_cores.remove(nlsi)
-                        if len(active_cores) == 0:
-                            next(islice(indices,cutoff-i-1,cutoff-i-1),None)
+                collide(active_cores,nls0)
+                if len(active_cores) == 0:
+                    next(islice(indices,cutoff-i-1,cutoff-i-1),None)
                 continue
             if (nnc == 1):
                 #only 1 neighbor, inherit
@@ -124,15 +153,13 @@ def find(data,cut=''):
 
             #There are 2 or more large neighbors to deactivate
             #corei is real index
-            for corei in nls0:
-                if corei in active_cores:
-                    active_cores.remove(corei)
-                    if verbose:
-                        print(i,' of ',cutoff,' cells ',
-                              len(active_cores),' minima')
-                    if len(active_cores) == 0:
-                        next(islice(indices,cutoff-i-1,cutoff-i-1),None)
-                        #skip up to next core or end
+            collide(active_cores,nls0)
+            if verbose:
+                print(i,' of ',cutoff,' cells ',
+                      len(active_cores),' minima')
+            if len(active_cores) == 0:
+                next(islice(indices,cutoff-i-1,cutoff-i-1),None)
+                #skip up to next core or end
     dt = timer('loop finished for ' + str(cutoff) + ' items')
     if verbose: print(str(dt/i) + ' per cell')
     if verbose: print(str(dt/cutoff) + ' per total cell')
@@ -258,4 +285,10 @@ def precompute_neighbor(shape,corner=True):
     #bcn shape num_neighbors x cells
     pcn[:,boundary_indices] = bcn                                    
     return pcn          
+
+
+def collide(active_cores,nls0):
+    for nlsi in nls0:
+        if nlsi in active_cores:
+            active_cores.remove(nlsi)
 

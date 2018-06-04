@@ -21,16 +21,12 @@ def timer(string=''):
         if verbose: print(string,str(dt) + " seconds elapsed")
     return dt
 
-def find(data,cut=''):
-    #take in 3d data
-    #find iso
+def setup(data,cut):
     timer()
     #prepare data
     dshape = data.shape
     dlist = data.reshape(-1) #COPY
     order = dlist.argsort() #an array of real index locations #COPY
-    dmin = dlist[order[0]]
-    dmax = dlist[order[-1]]
 
     timer('sort')
     length = len(order)
@@ -54,13 +50,22 @@ def find(data,cut=''):
         core_dict[mini] = deque([mini])
     labels[mfw] = mfw
     active_cores = list(mfw) #real index
-    inactive_cores = [] #real index
     timer('init minima')
 
     #precompute neighbor indices 
     pcn = precompute_neighbor(dshape,corner=corner_bool)
     timer('precompute neighbor indices')
-    
+
+    return core_dict,labels,active_cores,length,order,cutoff,pcn
+
+
+
+def find(data,cut=''):
+    #take in 3d data
+    #find iso
+    #setup
+    core_dict,labels,active_cores,length,order,cutoff,pcn = setup(data,cut)
+    inactive_cores = [] #real index
     #loop
     indices = iter(range(cutoff))
     # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
