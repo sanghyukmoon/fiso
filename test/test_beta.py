@@ -2,18 +2,28 @@ from test_setup import *
 import mem
 import fiso
 import fiso_beta as fb
+import code_cf_b as cf
+fiso.verbose = False
+fb.verbose = False
+cf.verbose = False
 timer('init')
-core_dict,labels = fiso.find(potential[::2,::2,::2])
+_dict,fiso_labels = fiso.find(potential[::2,::2,::2])
 timer('fiso')
-mem.mem('fiso')
-core_dict,labels = fb.find(potential[::2,::2,::2])
+_dict,fb_labels = fb.find(potential[::2,::2,::2])
 timer('beta')
-mem.mem('beta')
+_dict,cf_labels = cf.corefind(potential[::2,::2,::2])
+timer('corefind')
+
+cffiso = (cf_labels != fiso_labels)
+cfbeta = (cf_labels != fb_labels)
+if n.any(cffiso):
+    print(n.sum(cffiso),'wrong')
+if n.any(cfbeta):
+    print(n.sum(cfbeta),'wrong')
+
 
 timer('init')
-core_dict,labels = fiso.find(potential)
+fiso.find(potential)
 timer('fiso')
-mem.mem('fiso')
-core_dict,labels = fb.find(potential)
+fb.find(potential)
 timer('beta')
-mem.mem('beta')

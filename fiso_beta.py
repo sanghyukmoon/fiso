@@ -75,8 +75,10 @@ def find(data,cut=''):
     for i in indices:
         orderi = order[i]
         #grab unique neighbor labels
-        nli = pcn[:,orderi]
-        nls = n.array(list(set(labels[nli])))
+        # nli = pcn[:,orderi]
+        nls = n.array(list(set(labels[
+            pcn[:,orderi]
+        ])))
         #nls = n.unique(labels[nli]) #this is much slower
         #nnc = (nls >= 0).sum() #this is 2x slower
         nls0 = nls[nls >= 0]        
@@ -112,19 +114,8 @@ def find(data,cut=''):
                     l0 = len(core_dict[nls0[0]])
                     l1 = len(core_dict[nls0[1]])
                     if min(l0,l1) < 27:
-                        smaller = n.argmin([l0,l1])
-                        larger = 1-smaller
-                        #add smaller core cells to larger dict
-                        core_dict[nls0[larger]] += core_dict[nls0[smaller]]
-                        #relabel smaller core cells to larger
-                        labels[core_dict[nls0[smaller]]] = nls0[larger]
-                        active_cores.remove(nls0[smaller])
-                        core_dict.pop(nls0[smaller])
-
-                        labels[orderi] = nls0[larger] 
-                        core_dict[nls0[larger]].append(orderi)
+                        subsume(l0,l1,orderi,nls0,core_dict,labels,active_cores)
                         continue
-
             #There are 2 or more large neighbors to deactivate
             #corei is real index
             collide(active_cores,nls0)
@@ -266,3 +257,16 @@ def collide(active_cores,nls0):
         if nlsi in active_cores:
             active_cores.remove(nlsi)
 
+def subsume(l0,l1,orderi,nls0,core_dict,labels,active_cores):
+    smaller = n.argmin([l0,l1])
+    larger = 1-smaller
+    #add smaller core cells to larger dict
+    core_dict[nls0[larger]] += core_dict[nls0[smaller]]
+    #relabel smaller core cells to larger
+    labels[core_dict[nls0[smaller]]] = nls0[larger]
+    active_cores.remove(nls0[smaller])
+    core_dict.pop(nls0[smaller])
+    
+    labels[orderi] = nls0[larger] 
+    core_dict[nls0[larger]].append(orderi)
+                        

@@ -27,3 +27,6 @@ point(f2,f1,zlist[2]) +\
 0.25*point(f2+df,f2,zlist[3]) +\
 0.25*point(f2,f2,zlist[3]) +\
 0.25*point(f2+df,f2+df,zlist[3]) 
+
+potential[int(f1)+5,int(f1),int(zlist[0])] *= 2.0
+potential[int(f1)-5,int(f1),int(zlist[0])] *= 2.0
