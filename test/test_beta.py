@@ -3,9 +3,10 @@ import mem
 import fiso
 import fiso_beta as fb
 import code_cf_b as cf
-fiso.verbose = False
-fb.verbose = False
-cf.verbose = False
+verbose = True
+fiso.verbose = verbose
+fb.verbose = verbose
+cf.verbose = verbose
 timer('init')
 _dict,fiso_labels = fiso.find(potential[::2,::2,::2])
 timer('fiso')
