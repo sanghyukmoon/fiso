@@ -166,7 +166,7 @@ def find_minima_flat(arr):
     return find_minima(arr).reshape(-1)
 
 def find_minima_pcn(dlist,pcn):
-    return (dlist < n.min(dlist[pcn],axis=0))
+    return (dlist < n.min(dlist[pcn],axis=1))
     # go from flattened array and pcn to flat
     # compare each cell to its neighbors according to pcn
     # method is 10x slower than sn.minimum_filter but more general
@@ -182,6 +182,41 @@ def boundary_pcn(coords,itp,shape,corner,mode='clip'):
     # dim, num_neighbors
     # want something of shape dim,num_coords,num_neighbors
     # num_coords, num_neighbors
+
+def gbi_axis(shape,dtype,axis):
+    '''
+    get boundary indices of axis from shape
+    useful when boundary condition is axis specific
+    '''
+    shape = list(shape)
+    dim = len(shape)
+    basel = dim*[None] #array slice none to extend array dimension
+    idx = range(dim) #index for loops
+    #dni is the coords for dimension "i"
+    dni = dim*[None]
+    for i in idx:
+        dni[i] = n.arange(shape[i],dtype=dtype)
+    #for boundary dimensions i set indices j != i, setting index i to be
+    #0 or end
+
+    ndnis = dim*[None]
+    i = axis
+    shapei = shape[:] #copy shape
+    shapei[i] = 1     #set dimension i to 1 (flat boundary)
+    nzs = n.zeros(shapei,dtype=dtype) #initialize boundary to 0
+    for j in idx:
+        if j == i:
+            continue
+        #make coord j using the n.arange (dni) with nzs of desired shape
+        selj = basel[:]
+        selj[j] = slice(None)
+        #slicing on index j makes dni[j] vary on index j and copy on other dimensions with desired shape nzs
+        ndnis[j] = dni[j][selj] + nzs
+    ndnis[i] = 0
+    face0 = list(n.ravel_multi_index(ndnis,shape).reshape(-1))
+    ndnis[i] = shape[i]-1
+    face1 = list(n.ravel_multi_index(ndnis,shape).reshape(-1))
+    return face0,face1
 
 def gbi(shape,dtype):
     '''get boundary indices from shape'''
@@ -217,6 +252,16 @@ def gbi(shape,dtype):
         bi += list(n.ravel_multi_index(ndnis,shape).reshape(-1))
     return bi
 
+def calc_itp(dim,corner,dtype):
+    offs = [-1,0,1]
+    itp = list(itertools.product(offs,repeat=dim))
+    if corner:
+        itp.remove((0,)*dim)
+    else:
+        itp = [i for i in itp if i.count(0) == 2]
+    itp = n.array(itp,dtype=dtype)
+    return itp
+
 def precompute_neighbor(shape,corner=True,mode='clip'):
     nps = n.prod(shape)
     #save on memory when applicable
@@ -225,18 +270,12 @@ def precompute_neighbor(shape,corner=True,mode='clip'):
     else:
         dtype = n.int64
     #set up array of cartesian displacements (itp)
-    lc = len(shape)
-    offs = [-1,0,1]
-    itp = list(itertools.product(offs,repeat=lc))
-    if corner:
-        itp.remove((0,)*lc)
-    else:
-        itp = [i for i in itp if i.count(0) == 2]
+    dim = len(shape)
+    itp = calc_itp(dim,corner,dtype)
     #set up displacements in index space (treat n-d array as 1-d list)
     ishape = shape[::-1]
     factor = n.cumprod(n.append([1],shape[::-1]))[:-1][::-1]
     factor = factor.astype(dtype)
-    itp = n.array(itp,dtype=dtype)
     displacements = (itp*factor).sum(axis=1)
     #displacements is num_neighbors 1-d array
     indices = n.arange(nps,dtype=dtype)[:,None]
