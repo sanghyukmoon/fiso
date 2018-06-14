@@ -66,6 +66,8 @@ def correct_pcn(shape,dtype,cell_shear):
     nc1[shear_axis][
         nc1[bound_axis] == shape[bound_axis]
     ] += cell_shear
+    # note that adding extra shape[shear_axis] to y is okay 
+    # because of wrap boundary mode. 
     bcn0 = n.ravel_multi_index(nc0,shape,mode=boundary_mode)
     bcn1 = n.ravel_multi_index(nc1,shape,mode=boundary_mode)
     return face0,bcn0,face1,bcn1

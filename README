@@ -4,7 +4,7 @@ fiso
 
 Fast isocontours
 
-Fast is Simple, Optimal
+Goals: Fast, Intuitive, Simple, Optimized
 
 Note: due to historical development and laziness, the returned regions are sometimes referred to as "core," "clump," "cloud," "isocontour," "iso," or "fiso."
 

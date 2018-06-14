@@ -62,7 +62,6 @@ def find(data,cut=''):
     # find iso
     # setup
     core_dict,labels,active_cores,order,cutoff,pcn = setup(data,cut)
-    inactive_cores = [] #real index
     # loop
     indices = iter(range(cutoff))
     # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
