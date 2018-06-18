@@ -33,7 +33,6 @@ def setup(data,cut):
     if type(cut) is float:
         cutoff = n.searchsorted(dlist[order],cut)
 
-
     #precompute neighbor indices
     pcn = precompute_neighbor(dshape,corner=corner_bool,mode=boundary_mode)
     timer('precompute neighbor indices')
@@ -52,17 +51,16 @@ def setup(data,cut):
     for mini in mfw:
         core_dict[mini] = deque([mini])
     labels[mfw] = mfw
-    active_cores = list(mfw) #real index
+    active_isos = set(mfw) #real index
     timer('init minima')
 
-    return core_dict,labels,active_cores,order,cutoff,pcn
+    return core_dict,labels,active_isos,order,cutoff,pcn
 
 def find(data,cut=''):
     # take in nd data
     # find iso
     # setup
-    core_dict,labels,active_cores,order,cutoff,pcn = setup(data,cut)
-    inactive_cores = [] #real index
+    core_dict,labels,active_isos,order,cutoff,pcn = setup(data,cut)
     # loop
     indices = iter(range(cutoff))
     # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
@@ -73,12 +71,15 @@ def find(data,cut=''):
         orderi = order[i]
         # grab unique neighbor labels
         # nli = pcn[:,orderi]
-        nls = n.array(list(set(labels[
+        nls = set(labels[
             pcn[orderi]
-        ])))
+        ])
+        nls0 = nls.copy()
+        nls0.discard(-1)
+        nls0.discard(-2)
+        nls0 = list(nls0)
         # nls = n.unique(labels[nli]) #this is much slower
         # nnc = (nls >= 0).sum() #this is 2x slower
-        nls0 = nls[nls >= 0]
         nnc = len(nls0)
         # number of neighbors in cores
 
@@ -87,38 +88,38 @@ def find(data,cut=''):
         if (nnc > 0):
             if -2 in nls:
                 # a neighbor is previously explored but not cored (boundary), deactivate cores
-                collide(active_cores,nls0)
-                if len(active_cores) == 0:
+                collide(active_isos,nls0)
+                if len(active_isos) == 0:
                     next(islice(indices,cutoff-i-1,cutoff-i-1),None)
                 continue
             if (nnc == 1):
                 # only 1 neighbor, inherit
                 inherit = nls0[0]
-                if inherit in active_cores:
+                if inherit in active_isos:
                     labels[orderi] = inherit
                     core_dict[inherit].append(orderi)
                     # inherit from neighbor, only 1 is positive/max
                 continue
             elif (nnc == 2):
-                if set(nls0) <= set(active_cores):
+                if set(nls0) <= active_isos:
                     # check smaller neighbor if it is too small
                     l0 = len(core_dict[nls0[0]])
                     l1 = len(core_dict[nls0[1]])
                     if min(l0,l1) < 27:
-                        subsume(l0,l1,orderi,nls0,core_dict,labels,active_cores)
+                        subsume(l0,l1,orderi,nls0,core_dict,labels,active_isos)
                         continue
             # There are 2 or more large neighbors to deactivate
             # corei is real index
-            collide(active_cores,nls0)
+            collide(active_isos,nls0)
             if verbose:
                 print(i,' of ',cutoff,' cells ',
-                      len(active_cores),' minima')
-            if len(active_cores) == 0:
+                      len(active_isos),' minima')
+            if len(active_isos) == 0:
                 next(islice(indices,cutoff-i-1,cutoff-i-1),None)
                 # skip up to next core or end
         else:
             # no lesser neighbors
-            if orderi in active_cores:
+            if orderi in active_isos:
                 labels[orderi] = orderi
     dt = timer('loop finished for ' + str(cutoff) + ' items')
     if verbose: print(str(dt/i) + ' per cell')
@@ -166,7 +167,7 @@ def find_minima_flat(arr):
     return find_minima(arr).reshape(-1)
 
 def find_minima_pcn(dlist,pcn):
-    return (dlist < n.min(dlist[pcn],axis=0))
+    return (dlist < n.min(dlist[pcn],axis=1))
     # go from flattened array and pcn to flat
     # compare each cell to its neighbors according to pcn
     # method is 10x slower than sn.minimum_filter but more general
@@ -182,6 +183,41 @@ def boundary_pcn(coords,itp,shape,corner,mode='clip'):
     # dim, num_neighbors
     # want something of shape dim,num_coords,num_neighbors
     # num_coords, num_neighbors
+
+def gbi_axis(shape,dtype,axis):
+    '''
+    get boundary indices of axis from shape
+    useful when boundary condition is axis specific
+    '''
+    shape = list(shape)
+    dim = len(shape)
+    basel = dim*[None] #array slice none to extend array dimension
+    idx = range(dim) #index for loops
+    #dni is the coords for dimension "i"
+    dni = dim*[None]
+    for i in idx:
+        dni[i] = n.arange(shape[i],dtype=dtype)
+    #for boundary dimensions i set indices j != i, setting index i to be
+    #0 or end
+
+    ndnis = dim*[None]
+    i = axis
+    shapei = shape[:] #copy shape
+    shapei[i] = 1     #set dimension i to 1 (flat boundary)
+    nzs = n.zeros(shapei,dtype=dtype) #initialize boundary to 0
+    for j in idx:
+        if j == i:
+            continue
+        #make coord j using the n.arange (dni) with nzs of desired shape
+        selj = basel[:]
+        selj[j] = slice(None)
+        #slicing on index j makes dni[j] vary on index j and copy on other dimensions with desired shape nzs
+        ndnis[j] = dni[j][selj] + nzs
+    ndnis[i] = 0
+    face0 = list(n.ravel_multi_index(ndnis,shape).reshape(-1))
+    ndnis[i] = shape[i]-1
+    face1 = list(n.ravel_multi_index(ndnis,shape).reshape(-1))
+    return face0,face1
 
 def gbi(shape,dtype):
     '''get boundary indices from shape'''
@@ -217,6 +253,16 @@ def gbi(shape,dtype):
         bi += list(n.ravel_multi_index(ndnis,shape).reshape(-1))
     return bi
 
+def calc_itp(dim,corner,dtype):
+    offs = [-1,0,1]
+    itp = list(itertools.product(offs,repeat=dim))
+    if corner:
+        itp.remove((0,)*dim)
+    else:
+        itp = [i for i in itp if i.count(0) == 2]
+    itp = n.array(itp,dtype=dtype)
+    return itp
+
 def precompute_neighbor(shape,corner=True,mode='clip'):
     nps = n.prod(shape)
     #save on memory when applicable
@@ -225,18 +271,12 @@ def precompute_neighbor(shape,corner=True,mode='clip'):
     else:
         dtype = n.int64
     #set up array of cartesian displacements (itp)
-    lc = len(shape)
-    offs = [-1,0,1]
-    itp = list(itertools.product(offs,repeat=lc))
-    if corner:
-        itp.remove((0,)*lc)
-    else:
-        itp = [i for i in itp if i.count(0) == 2]
+    dim = len(shape)
+    itp = calc_itp(dim,corner,dtype)
     #set up displacements in index space (treat n-d array as 1-d list)
     ishape = shape[::-1]
     factor = n.cumprod(n.append([1],shape[::-1]))[:-1][::-1]
     factor = factor.astype(dtype)
-    itp = n.array(itp,dtype=dtype)
     displacements = (itp*factor).sum(axis=1)
     #displacements is num_neighbors 1-d array
     indices = n.arange(nps,dtype=dtype)[:,None]
@@ -251,19 +291,19 @@ def precompute_neighbor(shape,corner=True,mode='clip'):
     pcn[boundary_indices,:] = boundary_pcn(boundary_coords,itp,shape,corner,mode=mode)
     return pcn
 
-def collide(active_cores,nls0):
+def collide(active_isos,nls0):
     for nlsi in nls0:
-        if nlsi in active_cores:
-            active_cores.remove(nlsi)
+        if nlsi in active_isos:
+            active_isos.remove(nlsi)
 
-def subsume(l0,l1,orderi,nls0,core_dict,labels,active_cores):
+def subsume(l0,l1,orderi,nls0,core_dict,labels,active_isos):
     smaller = n.argmin([l0,l1])
     larger = 1-smaller
     #add smaller core cells to larger dict
     core_dict[nls0[larger]] += core_dict[nls0[smaller]]
     #relabel smaller core cells to larger
     labels[core_dict[nls0[smaller]]] = nls0[larger]
-    active_cores.remove(nls0[smaller])
+    active_isos.remove(nls0[smaller])
     core_dict.pop(nls0[smaller])
 
     labels[orderi] = nls0[larger]

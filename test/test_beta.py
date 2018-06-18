@@ -3,7 +3,7 @@ import mem
 import fiso
 import fiso_beta as fb
 import code_cf_b as cf
-verbose = True
+verbose = False
 fiso.verbose = verbose
 fb.verbose = verbose
 cf.verbose = verbose
