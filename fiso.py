@@ -43,7 +43,13 @@ def setup(data,cut):
     mfw = n.where(minima_flat)[0]
     #mfw is real index
     if verbose: print(len(mfw),'minima')
+    return mfw,order,cutoff,pcn
 
+def find(data,cut=''):
+    # take in nd data
+    # find iso
+    # setup
+    mfw,order,cutoff,pcn = setup(data,cut)
     #iso dict and labels setup
     iso_dict = {}
     labels = -n.ones(len(order),dtype=int) #indices are real index locations
@@ -52,15 +58,7 @@ def setup(data,cut):
         iso_dict[mini] = deque([mini])
     labels[mfw] = mfw
     active_isos = set(mfw) #real index
-    timer('init minima')
 
-    return iso_dict,labels,active_isos,order,cutoff,pcn
-
-def find(data,cut=''):
-    # take in nd data
-    # find iso
-    # setup
-    iso_dict,labels,active_isos,order,cutoff,pcn = setup(data,cut)
     # loop
     indices = iter(range(cutoff))
     # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
@@ -140,13 +138,25 @@ def find_minima_no_bc(arr):
         nhbd = sn.generate_binary_structure(len(arr.shape),3)
     else:
         nhbd = sn.generate_binary_structure(len(arr.shape),1)
-    mode0 = 'reflect' # initially doesnt allow any boundary cells to be minima
-    local_min = (sn.filters.minimum_filter(arr, footprint=nhbd, mode=mode0)==arr)
+    # nhbd[len(arr.shape)*[slice(1,2)]] = False #exclude self
+    mode0 = 'constant' 
+    # initially doesnt allow any boundary cells to be minima
+    local_min = (arr == sn.filters.minimum_filter(arr, 
+                                                  footprint=nhbd, 
+                                                  mode=mode0,
+                                                  cval=-n.inf)).reshape(-1)
     return local_min
 
-def find_minima_bc(dlist,indices,bcn):
+def find_minima_boundary_only(dlist,indices,bcn):
+    '''
+    dlist: 1-d array data
+    indices: 1-d array of boundary flattened indices
+    bcn: boundary neighbors: num_indices x num_neighbors 2-d array of 
+    flattened indices
+    output: indices that are local minima. 
+    '''
     indices = n.array(indices)
-    return indices[dlist[indices] < n.min(dlist[bcn],axis=1)]
+    return indices[dlist[indices] <= n.min(dlist[bcn],axis=1)]
 
 
 def find_minima_global(arr):
@@ -161,7 +171,11 @@ def find_minima_global(arr):
         mode0 = 'wrap'
     else:
         mode0 = 'reflect'
-    local_min = (sn.filters.minimum_filter(arr, footprint=nhbd, mode=mode0)==arr)
+    # nhbd[len(arr.shape)*[slice(1,2)]] = False #exclude self, enforce strict local minimum
+    # local_min = (arr < sn.filters.minimum_filter(arr, 
+    local_min = (arr == sn.filters.minimum_filter(arr, 
+                                                 footprint=nhbd, 
+                                                 mode=mode0))
     return local_min
 
 find_minima = find_minima_global
@@ -170,7 +184,7 @@ def find_minima_flat(arr):
     return find_minima(arr).reshape(-1)
 
 def find_minima_pcn(dlist,pcn):
-    return (dlist < n.min(dlist[pcn],axis=1))
+    return (dlist <= n.min(dlist[pcn],axis=1))
     # go from flattened array and pcn to flat
     # compare each cell to its neighbors according to pcn
     # method is 10x slower than sn.minimum_filter but more general
@@ -287,12 +301,19 @@ def precompute_neighbor(shape,corner=True,mode='clip'):
     pcn = indices + displacements[None]
     #pcn is 2-d array using :,None to combine
     #apply boundary correction mode='clip' set in boundary_pcn
-    boundary_indices = gbi(shape,dtype)
-    boundary_coords = n.array(n.unravel_index(boundary_indices,shape),dtype=dtype)
+    bi,bpcn = boundary_i_bcn(shape,dtype,itp,corner,mode)
     #pcn shape num_neighbors x cells
     #bcn shape num_neighbors x cells
-    pcn[boundary_indices,:] = boundary_pcn(boundary_coords,itp,shape,corner,mode=mode)
+    pcn[bi] = bpcn
     return pcn
+
+def boundary_i_bcn(shape,dtype,itp,corner,mode):
+    # returns boundary indices and boundary's neighbor indices. 
+    boundary_indices = gbi(shape,dtype)
+    boundary_coords = n.array(n.unravel_index(boundary_indices,shape),
+                              dtype=dtype)  
+    bpcn = boundary_pcn(boundary_coords,itp,shape,corner,mode=mode).astype(dtype)
+    return boundary_indices,bpcn
 
 def collide(active_isos,nls0):
     for nlsi in nls0:

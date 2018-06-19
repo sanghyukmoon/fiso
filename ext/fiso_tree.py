@@ -19,12 +19,19 @@ timer = fiso.timer
 setup = fiso.setup
 
 def find(data,cut=''):
-    iso_dict,labels,active_isos,order,cutoff,pcn = setup(data,cut)
-
-    iso_list = []
-    eic_list = [] #exclusive immediate children
+    mfw,order,cutoff,pcn = setup(data,cut)
+    #iso dict and labels setup
+    iso_dict = {}
+    labels = -n.ones(len(order),dtype=int) #indices are real index locations
+    #inside loop, labels are accessed by labels[order[i]]
+    for mini in mfw:
+        iso_dict[mini] = deque([mini])
+    labels[mfw] = mfw
+    active_isos = set(mfw) #real index
 
     # TS: tree specific
+    iso_list = []
+    eic_list = [] #exclusive immediate children
     parent_dict = {}
     child_dict = {}
     for iso in active_isos:
@@ -101,10 +108,10 @@ def find(data,cut=''):
 #if neighor is in an inactive iso, don't add to iso
 #if 2 or more neighbors are in different isos, dont add to a iso.
 # Q: What happens when a child's parent is subsumed? Their new parent is the subsumer
-# Q: What happens when a child's parent is deactivated in collision with boundary? 
+# Q: What happens when a child's parent is deactivated in collision with boundary?
 # Who is their new parent?
 # During merge, parents that get inactivated are replaced with active parent.
-# When a child's parent is inactive 
+# When a child's parent is inactive
 # to turn tree into normal, just set merge to collide
 
 def collide(active_isos,nls0,*args):
@@ -124,7 +131,7 @@ def subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos):
 
     labels[orderi] = nls0[larger]
     iso_dict[nls0[larger]].append(orderi)
-   
+
 def merge(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list):
     merge_bool = False
     eic = []
