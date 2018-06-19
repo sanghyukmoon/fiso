@@ -1,6 +1,6 @@
 # This extension returns extra objects
 # iso_list: for keeping track of all members of the tree
-# eic_list: for keeping track of the tree structure, the immediate children 
+# eic_list: for keeping track of the tree structure, the immediate children
 # of each member
 
 import numpy as n
@@ -17,7 +17,6 @@ verbose = True
 # how to determine neighbors of boundary cells
 timer = fiso.timer
 setup = fiso.setup
-subsume = fiso.subsume
 
 def find(data,cut=''):
     iso_dict,labels,active_isos,order,cutoff,pcn = setup(data,cut)
@@ -36,14 +35,19 @@ def find(data,cut=''):
     # TS: tree specific
 
     indices = iter(range(cutoff))
+
+    min_active = 0
     for i in indices:
         orderi = order[i]
-        nls = n.array(list(set(
-            labels[
+        nls = set(labels[
             pcn[orderi]
-            ]
-        )))
-        nls0 = nls[nls >= 0]
+        ])
+        nls0 = nls.copy()
+        nls0.discard(-1)
+        nls0.discard(-2)
+        nls0 = list(set(
+            [parent_dict[nlsi] for nlsi in nls0]
+        ))
         nnc = len(nls0)
         # number of neighbors in isos
         # first note this cell has been explored
@@ -52,25 +56,19 @@ def find(data,cut=''):
             if -2 in nls:
                 # a neighbor is previously explored but not isod (boundary), deactivate isos
                 collide(active_isos,nls0)
-                if len(active_isos) == 1:
+                if len(active_isos) == min_active:
                     next(islice(indices,cutoff-i-1,cutoff-i-1),None)
                 continue
-
-            # TS
-            parents = list(set([parent_dict[nlsi] for nlsi in nls0]))
-            npc = len(parents)
-            # TS
-            
-            if (npc == 1):
+            if (nnc == 1):
                 # only 1 neighbor, inherit
-                inherit = parents[0]
+                inherit = nls0[0]
                 if inherit in active_isos:
                     labels[orderi] = inherit
                     iso_dict[inherit].append(orderi)
                     # inherit from neighbor, only 1 is positive/max
                 continue
-            elif (npc == 2):
-                if set(nls0) <= set(active_isos):
+            elif (nnc == 2):
+                if set(nls0) <= active_isos:
                     # check smaller neighbor if it is too small
                     l0 = len(iso_dict[nls0[0]])
                     l1 = len(iso_dict[nls0[1]])
@@ -80,13 +78,13 @@ def find(data,cut=''):
             # There are 2 or more large neighbors to deactivate
             # isoi is real index
             # TS
-            merge(orderi,active_isos,iso_dict,child_dict,parent_dict,parents,iso_list,eic_list)
+            merge(active_isos,nls0,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list)
             # TS
             # collide(active_isos,nls0)
             if verbose:
                 print(i,' of ',cutoff,' cells ',
                       len(active_isos),' minima')
-            if len(active_isos) == 1:
+            if len(active_isos) == min_active:
                 next(islice(indices,cutoff-i-1,cutoff-i-1),None)
                 # skip up to next iso or end
         else:
@@ -102,14 +100,32 @@ def find(data,cut=''):
 #if neighbor is in an active iso, add to iso
 #if neighor is in an inactive iso, don't add to iso
 #if 2 or more neighbors are in different isos, dont add to a iso.
+# Q: What happens when a child's parent is subsumed? Their new parent is the subsumer
+# Q: What happens when a child's parent is deactivated in collision with boundary? 
+# Who is their new parent?
+# During merge, parents that get inactivated are replaced with active parent.
+# When a child's parent is inactive 
+# to turn tree into normal, just set merge to collide
 
-def collide(active_isos,nls0):
+def collide(active_isos,nls0,*args):
     for nlsi in nls0:
         if nlsi in active_isos:
             active_isos.remove(nlsi)
 
+def subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos):
+    smaller = n.argmin([l0,l1])
+    larger = 1-smaller
+    #add smaller iso cells to larger dict
+    iso_dict[nls0[larger]] += iso_dict[nls0[smaller]]
+    #relabel smaller iso cells to larger
+    labels[iso_dict[nls0[smaller]]] = nls0[larger]
+    active_isos.remove(nls0[smaller])
+    iso_dict.pop(nls0[smaller])
 
-def merge(orderi,active_isos,iso_dict,child_dict,parent_dict,parents,iso_list,eic_list):
+    labels[orderi] = nls0[larger]
+    iso_dict[nls0[larger]].append(orderi)
+   
+def merge(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list):
     merge_bool = False
     eic = []
     for iso in parents:
@@ -123,7 +139,8 @@ def merge(orderi,active_isos,iso_dict,child_dict,parent_dict,parents,iso_list,ei
         iso_dict[orderi] = deque([orderi])
         child_dict[orderi] = deque([orderi])
         parent_dict[orderi] = orderi
-        active_isos.append(orderi) 
+        # new parent iso is active
+        active_isos.add(orderi)
         iso_list.append(orderi)
         eic_list.append(eic)
         # exclusive immediate children
@@ -137,8 +154,8 @@ def merge(orderi,active_isos,iso_dict,child_dict,parent_dict,parents,iso_list,ei
             # deactivate iso
             active_isos.remove(iso)
 
-# Keep ordered list of isos [ ] 
-# Keep ordered list of lists [ ]. Each list is immediate children. 
-# When considering merges in post, move along ordered list of isos 
-# and resolve from bottom to top. 1 pass. 
-# Each iso is processed before its parents.  
+# Keep ordered list of isos [ ]
+# Keep ordered list of lists [ ]. Each list is immediate children.
+# When considering merges in post, move along ordered list of isos
+# and resolve from bottom to top. 1 pass.
+# Each iso is processed before its parents.

@@ -44,23 +44,23 @@ def setup(data,cut):
     #mfw is real index
     if verbose: print(len(mfw),'minima')
 
-    #core dict and labels setup
-    core_dict = {}
+    #iso dict and labels setup
+    iso_dict = {}
     labels = -n.ones(len(order),dtype=int) #indices are real index locations
     #inside loop, labels are accessed by labels[order[i]]
     for mini in mfw:
-        core_dict[mini] = deque([mini])
+        iso_dict[mini] = deque([mini])
     labels[mfw] = mfw
     active_isos = set(mfw) #real index
     timer('init minima')
 
-    return core_dict,labels,active_isos,order,cutoff,pcn
+    return iso_dict,labels,active_isos,order,cutoff,pcn
 
 def find(data,cut=''):
     # take in nd data
     # find iso
     # setup
-    core_dict,labels,active_isos,order,cutoff,pcn = setup(data,cut)
+    iso_dict,labels,active_isos,order,cutoff,pcn = setup(data,cut)
     # loop
     indices = iter(range(cutoff))
     # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
@@ -81,13 +81,13 @@ def find(data,cut=''):
         # nls = n.unique(labels[nli]) #this is much slower
         # nnc = (nls >= 0).sum() #this is 2x slower
         nnc = len(nls0)
-        # number of neighbors in cores
+        # number of neighbors in isos
 
         # first note this cell has been explored
         labels[orderi] = -2
         if (nnc > 0):
             if -2 in nls:
-                # a neighbor is previously explored but not cored (boundary), deactivate cores
+                # a neighbor is previously explored but not isod (boundary), deactivate isos
                 collide(active_isos,nls0)
                 if len(active_isos) == 0:
                     next(islice(indices,cutoff-i-1,cutoff-i-1),None)
@@ -97,26 +97,26 @@ def find(data,cut=''):
                 inherit = nls0[0]
                 if inherit in active_isos:
                     labels[orderi] = inherit
-                    core_dict[inherit].append(orderi)
+                    iso_dict[inherit].append(orderi)
                     # inherit from neighbor, only 1 is positive/max
                 continue
             elif (nnc == 2):
                 if set(nls0) <= active_isos:
                     # check smaller neighbor if it is too small
-                    l0 = len(core_dict[nls0[0]])
-                    l1 = len(core_dict[nls0[1]])
+                    l0 = len(iso_dict[nls0[0]])
+                    l1 = len(iso_dict[nls0[1]])
                     if min(l0,l1) < 27:
-                        subsume(l0,l1,orderi,nls0,core_dict,labels,active_isos)
+                        subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos)
                         continue
             # There are 2 or more large neighbors to deactivate
-            # corei is real index
+            # isoi is real index
             collide(active_isos,nls0)
             if verbose:
                 print(i,' of ',cutoff,' cells ',
                       len(active_isos),' minima')
             if len(active_isos) == 0:
                 next(islice(indices,cutoff-i-1,cutoff-i-1),None)
-                # skip up to next core or end
+                # skip up to next iso or end
         else:
             # no lesser neighbors
             if orderi in active_isos:
@@ -124,30 +124,33 @@ def find(data,cut=''):
     dt = timer('loop finished for ' + str(cutoff) + ' items')
     if verbose: print(str(dt/i) + ' per cell')
     if verbose: print(str(dt/cutoff) + ' per total cell')
-    return core_dict,labels
+    return iso_dict,labels
 
-#if alone, start new core
-#if neighbor is in an active core, add to core
-#if neighor is in an inactive core, don't add to core
-#if 2 or more neighbors are in different cores, dont add to a core.
+#if alone, start new iso
+#if neighbor is in an active iso, add to iso
+#if neighor is in an inactive iso, don't add to iso
+#if 2 or more neighbors are in different isos, dont add to a iso.
 
-def find_minima_clip(arr):
-    nhbd = sn.generate_binary_structure(len(arr.shape),3) #neighborhood
-    local_min = (sn.filters.minimum_filter(arr, footprint=nhbd, mode='reflect')==arr)
+def find_minima_no_bc(arr):
+    '''
+    Find minima using sn, don't allow any boundary cells to be minima
+    Then add the boundaries 
+    '''
+    if corner_bool:
+        nhbd = sn.generate_binary_structure(len(arr.shape),3)
+    else:
+        nhbd = sn.generate_binary_structure(len(arr.shape),1)
+    mode0 = 'reflect' # initially doesnt allow any boundary cells to be minima
+    local_min = (sn.filters.minimum_filter(arr, footprint=nhbd, mode=mode0)==arr)
     return local_min
 
-def find_minima_nocorner(arr):
-    nhbd = sn.generate_binary_structure(len(arr.shape),1) #neighborhood
-    local_min = (sn.filters.minimum_filter(arr, footprint=nhbd, mode='reflect')==arr)
-    return local_min
+def find_minima_bc(dlist,indices,bcn):
+    indices = n.array(indices)
+    return indices[dlist[indices] < n.min(dlist[bcn],axis=1)]
 
-def find_minima_wrap(arr):
-    nhbd = sn.generate_binary_structure(len(arr.shape),3) #neighborhood
-    local_min = (sn.filters.minimum_filter(arr, footprint=nhbd, mode='wrap')==arr)
-    return local_min
 
 def find_minima_global(arr):
-    # find minima functiond depending on global args
+    # find minima function depending on global args
     if corner_bool:
         nhbd = sn.generate_binary_structure(len(arr.shape),3)
     else:
@@ -296,15 +299,15 @@ def collide(active_isos,nls0):
         if nlsi in active_isos:
             active_isos.remove(nlsi)
 
-def subsume(l0,l1,orderi,nls0,core_dict,labels,active_isos):
+def subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos):
     smaller = n.argmin([l0,l1])
     larger = 1-smaller
-    #add smaller core cells to larger dict
-    core_dict[nls0[larger]] += core_dict[nls0[smaller]]
-    #relabel smaller core cells to larger
-    labels[core_dict[nls0[smaller]]] = nls0[larger]
+    #add smaller iso cells to larger dict
+    iso_dict[nls0[larger]] += iso_dict[nls0[smaller]]
+    #relabel smaller iso cells to larger
+    labels[iso_dict[nls0[smaller]]] = nls0[larger]
     active_isos.remove(nls0[smaller])
-    core_dict.pop(nls0[smaller])
+    iso_dict.pop(nls0[smaller])
 
     labels[orderi] = nls0[larger]
-    core_dict[nls0[larger]].append(orderi)
+    iso_dict[nls0[larger]].append(orderi)

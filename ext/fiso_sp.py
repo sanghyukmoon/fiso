@@ -2,8 +2,6 @@
 # X, Y periodic.
 # Z clip
 import fiso
-from itertools import islice
-import itertools
 from collections import deque
 import numpy as n
 boundary_mode = ['wrap','wrap','clip']
@@ -26,13 +24,19 @@ def setup(data,cut):
     dtype = type(pcn[0,0])
 
     # correct X endpoints with Y shear
-    face0,bcn0,face1,bcn1 = correct_pcn(dshape,dtype,cell_shear)
-    pcn[face0] = bcn0
-    pcn[face1] = bcn1
+    face, bcn = correct_pcn(dshape,dtype,cell_shear)
+    pcn[face] = bcn
 
-    mfw = n.where(fiso.find_minima_pcn(dlist,pcn))[0]
+    mfw0 = n.where(fiso.find_minima_no_bc(data).reshape(-1))[0]    
+    mfw1 = fiso.find_minima_bc(dlist,face,bcn)
+    mfw = n.sort(n.append(mfw0,mfw1))
+    print(mfw0,mfw1,type(mfw0),type(mfw1))
+    mfw_old = n.where(fiso.find_minima_pcn(dlist,pcn))[0]
     fiso.timer('minima')
-
+    print('Should be true',n.all(mfw_old == mfw))
+    print(mfw_old == mfw)
+    print(mfw_old)
+    print(mfw)
     #core dict and labels setup
     core_dict = {}
     labels = -n.ones(len(order),dtype=int) #indices are real index locations
@@ -52,7 +56,6 @@ def correct_pcn(shape,dtype,cell_shear):
     # calculate the coords of those indices
     bc0 = n.array(n.unravel_index(face0,shape),dtype=dtype)
     bc1 = n.array(n.unravel_index(face1,shape),dtype=dtype)
-    # calculate itp, itertools product [-1,0,1]
     itp = fiso.calc_itp(3,True,dtype)
     titp = n.transpose(itp)[:,None,:]
     # get all neighboring coordinates
@@ -68,9 +71,11 @@ def correct_pcn(shape,dtype,cell_shear):
     ] += cell_shear
     # note that adding extra shape[shear_axis] to y is okay 
     # because of wrap boundary mode. 
-    bcn0 = n.ravel_multi_index(nc0,shape,mode=boundary_mode)
-    bcn1 = n.ravel_multi_index(nc1,shape,mode=boundary_mode)
-    return face0,bcn0,face1,bcn1
+    bcn0 = list(n.ravel_multi_index(nc0,shape,mode=boundary_mode))
+    bcn1 = list(n.ravel_multi_index(nc1,shape,mode=boundary_mode))
+    face = face0 + face1
+    bcn = n.array(bcn0+bcn1)
+    return face,bcn
 
 fiso.setup = setup
 find = fiso.find
