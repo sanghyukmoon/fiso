@@ -145,6 +145,6 @@ def find_split(iso,eic_dict):
     if le == 0:
         return iso
     elif le == 1:
-        return find_split(eics[0])
+        return find_split(eics[0],eic_dict)
     else:
         return iso
