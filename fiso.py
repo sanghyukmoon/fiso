@@ -132,17 +132,17 @@ def find(data,cut=''):
 def find_minima_no_bc(arr):
     '''
     Find minima using sn, don't allow any boundary cells to be minima
-    Then add the boundaries 
+    Then add the boundaries
     '''
     if corner_bool:
         nhbd = sn.generate_binary_structure(len(arr.shape),3)
     else:
         nhbd = sn.generate_binary_structure(len(arr.shape),1)
     # nhbd[len(arr.shape)*[slice(1,2)]] = False #exclude self
-    mode0 = 'constant' 
+    mode0 = 'constant'
     # initially doesnt allow any boundary cells to be minima
-    local_min = (arr == sn.filters.minimum_filter(arr, 
-                                                  footprint=nhbd, 
+    local_min = (arr == sn.filters.minimum_filter(arr,
+                                                  footprint=nhbd,
                                                   mode=mode0,
                                                   cval=-n.inf)).reshape(-1)
     return local_min
@@ -151,9 +151,9 @@ def find_minima_boundary_only(dlist,indices,bcn):
     '''
     dlist: 1-d array data
     indices: 1-d array of boundary flattened indices
-    bcn: boundary neighbors: num_indices x num_neighbors 2-d array of 
+    bcn: boundary neighbors: num_indices x num_neighbors 2-d array of
     flattened indices
-    output: indices that are local minima. 
+    output: indices that are local minima.
     '''
     indices = n.array(indices)
     return indices[dlist[indices] <= n.min(dlist[bcn],axis=1)]
@@ -172,9 +172,9 @@ def find_minima_global(arr):
     else:
         mode0 = 'reflect'
     # nhbd[len(arr.shape)*[slice(1,2)]] = False #exclude self, enforce strict local minimum
-    # local_min = (arr < sn.filters.minimum_filter(arr, 
-    local_min = (arr == sn.filters.minimum_filter(arr, 
-                                                 footprint=nhbd, 
+    # local_min = (arr < sn.filters.minimum_filter(arr,
+    local_min = (arr == sn.filters.minimum_filter(arr,
+                                                 footprint=nhbd,
                                                  mode=mode0))
     return local_min
 
@@ -229,7 +229,7 @@ def gbi_axis(shape,dtype,axis):
         selj = basel[:]
         selj[j] = slice(None)
         #slicing on index j makes dni[j] vary on index j and copy on other dimensions with desired shape nzs
-        ndnis[j] = dni[j][selj] + nzs
+        ndnis[j] = dni[j][tuple(selj)] + nzs
     ndnis[i] = 0
     face0 = list(n.ravel_multi_index(ndnis,shape).reshape(-1))
     ndnis[i] = shape[i]-1
@@ -263,7 +263,7 @@ def gbi(shape,dtype):
             selj = basel[:]
             selj[j] = slice(None)
             #slicing on index j makes dni[j] vary on index j and copy on other dimensions with desired shape nzs
-            ndnis[j] = dni[j][selj] + nzs
+            ndnis[j] = dni[j][tuple(selj)] + nzs
         ndnis[i] = 0
         bi += list(n.ravel_multi_index(ndnis,shape).reshape(-1))
         ndnis[i] = shape[i]-1
@@ -279,6 +279,21 @@ def calc_itp(dim,corner,dtype):
         itp = [i for i in itp if i.count(0) == 2]
     itp = n.array(itp,dtype=dtype)
     return itp
+
+def compute_displacement(shape,corner):
+    nps = n.prod(shape)
+    #save on memory when applicable
+    if nps < 2**31:
+        dtype = n.int32
+    else:
+        dtype = n.int64
+    dim = len(shape)
+    itp = calc_itp(dim,corner,dtype)
+    ishape = shape[::-1]
+    factor = n.cumprod(n.append([1],shape[::-1]))[:-1][::-1]
+    factor = factor.astype(dtype)
+    displacements = (itp*factor).sum(axis=1)
+    return displacements
 
 def precompute_neighbor(shape,corner=True,mode='clip'):
     nps = n.prod(shape)
@@ -308,10 +323,10 @@ def precompute_neighbor(shape,corner=True,mode='clip'):
     return pcn
 
 def boundary_i_bcn(shape,dtype,itp,corner,mode):
-    # returns boundary indices and boundary's neighbor indices. 
+    # returns boundary indices and boundary's neighbor indices.
     boundary_indices = gbi(shape,dtype)
     boundary_coords = n.array(n.unravel_index(boundary_indices,shape),
-                              dtype=dtype)  
+                              dtype=dtype)
     bpcn = boundary_pcn(boundary_coords,itp,shape,corner,mode=mode).astype(dtype)
     return boundary_indices,bpcn
 

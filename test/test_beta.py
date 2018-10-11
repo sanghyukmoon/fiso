@@ -1,7 +1,9 @@
+# for testing purposes 
+
 from test_setup import *
 import mem
-import fiso
-import fiso_beta as fb
+from fiso import fiso
+import fiso.fiso_beta as fb
 import code_cf_b as cf
 verbose = False
 fiso.verbose = verbose

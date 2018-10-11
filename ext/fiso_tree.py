@@ -10,7 +10,7 @@ from itertools import islice
 import itertools
 from collections import deque
 
-import fiso
+from fiso import fiso
 
 # printing extra diagnostic messages
 verbose = True
@@ -43,7 +43,7 @@ def find(data,cut=''):
 
     indices = iter(range(cutoff))
 
-    min_active = 0
+    min_active = 1
     for i in indices:
         orderi = order[i]
         nls = set(labels[
@@ -63,6 +63,7 @@ def find(data,cut=''):
             if -2 in nls:
                 # a neighbor is previously explored but not isod (boundary), deactivate isos
                 collide(active_isos,nls0)
+                min_active = 0
                 if len(active_isos) == min_active:
                     next(islice(indices,cutoff-i-1,cutoff-i-1),None)
                 continue
@@ -74,20 +75,10 @@ def find(data,cut=''):
                     iso_dict[inherit].append(orderi)
                     # inherit from neighbor, only 1 is positive/max
                 continue
-            elif (nnc == 2):
-                if set(nls0) <= active_isos:
-                    # check smaller neighbor if it is too small
-                    l0 = len(iso_dict[nls0[0]])
-                    l1 = len(iso_dict[nls0[1]])
-                    if min(l0,l1) < 27:
-                        subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos)
-                        continue
-            # There are 2 or more large neighbors to deactivate
-            # isoi is real index
+            # There are 2 or more neighbors to deal with
             # TS
-            merge(active_isos,nls0,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list)
+            merge(active_isos,nls0,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list,labels)
             # TS
-            # collide(active_isos,nls0)
             if verbose:
                 print(i,' of ',cutoff,' cells ',
                       len(active_isos),' minima')
@@ -117,52 +108,93 @@ def find(data,cut=''):
 def collide(active_isos,nls0,*args):
     for nlsi in nls0:
         if nlsi in active_isos:
-            active_isos.remove(nlsi)
+            active_isos.discard(nlsi)
 
-def subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos):
-    smaller = n.argmin([l0,l1])
-    larger = 1-smaller
-    #add smaller iso cells to larger dict
-    iso_dict[nls0[larger]] += iso_dict[nls0[smaller]]
-    #relabel smaller iso cells to larger
-    labels[iso_dict[nls0[smaller]]] = nls0[larger]
-    active_isos.remove(nls0[smaller])
-    iso_dict.pop(nls0[smaller])
+def merge(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list,labels):
+    # merge removes deactivated parents
+    # subsume removes deactivated parents
+    # hence, inactive parents must have come from collide
+    # first check for inactive parents which must have come from collide
+    # if any inactive parents, collide
+    # if all parents are active, first subsume smallest isos. 
+    if set(parents) <= active_isos:
+        tree_subsume(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list,labels)
+    else:
+        collide(active_isos,parents)
+        return 
+    eic = list(set(parents) & active_isos)
+    # eic = list(parents)
+    # start new iso, assign it to be its own child and parent
+    iso_dict[orderi] = deque([orderi])
+    labels[orderi] = orderi
+    child_dict[orderi] = deque([orderi])
+    parent_dict[orderi] = orderi
 
-    labels[orderi] = nls0[larger]
-    iso_dict[nls0[larger]].append(orderi)
-
-def merge(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list):
-    merge_bool = False
-    eic = []
-    for iso in parents:
-        if iso in active_isos:
-            merge_bool = True
-            eic.append(iso)
-        else:
-            print('Unexpected error: inactive parent')
-    if merge_bool:
-        # start new iso, assign it to be its own child and parent
-        iso_dict[orderi] = deque([orderi])
-        child_dict[orderi] = deque([orderi])
-        parent_dict[orderi] = orderi
-        # new parent iso is active
-        active_isos.add(orderi)
-        iso_list.append(orderi)
-        eic_list.append(eic)
-        # exclusive immediate children
-        for iso in eic:
-            # new parent orderi owns all children of all merging isos
-            # children's parent is orderi.
-            # orderi's children is children
-            for child in child_dict[iso]:
-                parent_dict[child] = orderi
-            child_dict[orderi] += child_dict[iso]
+    # new parent iso is active
+    active_isos.add(orderi)
+    iso_list.append(orderi)
+    eic_list.append(eic)
+    # exclusive immediate children
+    for iso in eic:
+        # new parent orderi owns all children of all merging isos
+        # orderi's children is children
+        child_dict[orderi] += child_dict[iso]
+        # children's parent is orderi.
+        for child in child_dict[iso]:
+            parent_dict[child] = orderi
             # deactivate iso
-            active_isos.remove(iso)
+        active_isos.discard(iso)
+    
 
+def tree_subsume(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list,labels):
+    min_cells = 27
+    eic_dict = dict(zip(iso_list,eic_list))
+    subsume_set = set()
+    len_list = [None] * len(parents)
+    cell_list = [None] * len(parents)
+    for i in range(len(parents)):
+        parent = parents[i]
+        lidp = len(iso_dict[parent])
+        if lidp < min_cells:
+            # too small, try making bigger
+            cell_list[i] = recursive_members(iso_dict,eic_dict,parent)
+            lidp = len(cell_list[i])
+            if lidp < min_cells:
+                # still too small 
+                subsume_set.add(i)
+        else: # big enough
+            cell_list[i] = iso_dict[parent]
+        len_list[i] = lidp
+    largest_i = n.argmax(len_list)
+    largest_parent = parents[largest_i]
+    subsume_set.discard(largest_i)
+    # add too small to largest
+    for i in subsume_set:
+        # add smaller iso cells to larger dict
+        iso_dict[largest_parent] += cell_list[i]
+        # relabel smaller iso cells to larger
+        labels[cell_list[i]] = largest_parent
+        # delete smaller iso
+        active_isos.remove(parents[i])
+        iso_dict.pop(parents[i])
+        # note any children of smaller iso would be too small 
+        # and be previously subsumed
+    
 # Keep ordered list of isos [ ]
 # Keep ordered list of lists [ ]. Each list is immediate children.
 # When considering merges in post, move along ordered list of isos
 # and resolve from bottom to top. 1 pass.
-# Each iso is processed before its parents.
+# Each iso ixs processed before its parents.
+
+def recursive_num_members(iso_dict,eic_dict,iso):
+    output = len(iso_dict[iso])
+    for child_iso in eic_dict[iso]:
+        output += recursive_num_members(iso_dict,eic_dict,child_iso)
+    return output
+
+def recursive_members(iso_dict,eic_dict,iso):
+    output = []
+    output += iso_dict[iso]
+    for child_iso in eic_dict[iso]:
+        output += recursive_members(iso_dict,eic_dict,child_iso)
+    return output

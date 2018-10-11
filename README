@@ -15,7 +15,7 @@ Compute the largest isocontours around minima of n-D fields such that each isoco
 # Solution
 
 Given a numpy n-D array, run:
-
+    from fiso import fiso
     isodict, labels = fiso.find(array)
 
 Note:
@@ -61,7 +61,7 @@ Change this function to change the initial definition of local minima.
 
 Example:
 
-    import fiso
+    from fiso import fiso
     fiso.find_minima = fiso.find_minima_wrap
 
 To be self consistent with the definition of "neighbors" on the boundary, also set:
@@ -89,8 +89,8 @@ fiso.find_minima also clips the box. The default mode of scipy.ndimage.filters.m
 
 # Other Files
 
-test_core.py contains an example with 4 point particles with smoothing
+fiso.test_fiso contains an example with 4 point particles with smoothing
 
-fiso_contour.py contains code for showing contours
+fiso.tools.contour contains code for showing contours
 
 test.png is the output of test_core.py

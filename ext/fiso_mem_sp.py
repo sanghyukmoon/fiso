@@ -1,6 +1,9 @@
 # Shear Periodic Boundary Conditions
 # X, Y periodic.
 # Z clip
+
+# mem version takes less memory but will take 20% more time per cell
+
 from fiso import fiso
 import numpy as n
 
@@ -80,9 +83,28 @@ def shear_bcn(shape,cell_shear):
 
 def shear_pcn(shape,cell_shear):
     bi,bpcn = shear_bcn(shape,cell_shear)
-    pcn = fiso.precompute_neighbor(shape,corner=corner_bool,mode=boundary_mode)
-    pcn[bi] = bpcn
+    displacements = fiso.compute_displacement(shape,corner_bool)
+    class pcnDict(dict):
+        def __getitem__(self,index):
+            return self.get(index,index+displacements)
+    pcn = pcnDict(zip(bi,bpcn))
+    # pcn[bi] = bpcn
     return bi,bpcn,pcn
+
+def compute_displacement(shape,corner):
+    nps = n.prod(shape)
+    #save on memory when applicable
+    if nps < 2**31:
+        dtype = n.int32
+    else:
+        dtype = n.int64
+    dim = len(shape)
+    itp = fiso.calc_itp(dim,corner,dtype)
+    ishape = shape[::-1]
+    factor = n.cumprod(n.append([1],shape[::-1]))[:-1][::-1]
+    factor = factor.astype(dtype)
+    displacements = (itp*factor).sum(axis=1)
+    return displacements
 
 fiso.setup = setup
 find = fiso.find

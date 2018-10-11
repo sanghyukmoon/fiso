@@ -1,5 +1,3 @@
-import sys
-sys.path.append('../')
 import numpy as n
 import time
 time.t0 = time.time()

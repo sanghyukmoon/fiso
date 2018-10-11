@@ -43,7 +43,13 @@ def setup(data,cut):
     mfw = n.where(minima_flat)[0]
     #mfw is real index
     if verbose: print(len(mfw),'minima')
+    return mfw,order,cutoff,pcn
 
+def find(data,cut=''):
+    # take in nd data
+    # find iso
+    # setup
+    mfw,order,cutoff,pcn = setup(data,cut)
     #iso dict and labels setup
     iso_dict = {}
     labels = -n.ones(len(order),dtype=int) #indices are real index locations
@@ -52,15 +58,7 @@ def setup(data,cut):
         iso_dict[mini] = deque([mini])
     labels[mfw] = mfw
     active_isos = set(mfw) #real index
-    timer('init minima')
 
-    return iso_dict,labels,active_isos,order,cutoff,pcn
-
-def find(data,cut=''):
-    # take in nd data
-    # find iso
-    # setup
-    iso_dict,labels,active_isos,order,cutoff,pcn = setup(data,cut)
     # loop
     indices = iter(range(cutoff))
     # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
@@ -149,7 +147,14 @@ def find_minima_no_bc(arr):
                                                   cval=-n.inf)).reshape(-1)
     return local_min
 
-def find_minima_bc(dlist,indices,bcn):
+def find_minima_boundary_only(dlist,indices,bcn):
+    '''
+    dlist: 1-d array data
+    indices: 1-d array of boundary flattened indices
+    bcn: boundary neighbors: num_indices x num_neighbors 2-d array of 
+    flattened indices
+    output: indices that are local minima. 
+    '''
     indices = n.array(indices)
     return indices[dlist[indices] <= n.min(dlist[bcn],axis=1)]
 

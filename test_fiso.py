@@ -30,7 +30,7 @@ import matplotlib
 import matplotlib.colors as mco
 matplotlib.use('agg')
 import pylab as p
-import fiso_contour as fc
+import tools.contour as fc
 
 
 def mesh(arr):                                                            
