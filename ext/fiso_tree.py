@@ -7,7 +7,6 @@ import numpy as n
 import scipy.ndimage as sn
 import time
 from itertools import islice
-import itertools
 from collections import deque
 
 from fiso import fiso

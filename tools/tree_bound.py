@@ -3,20 +3,26 @@ import numpy as n
 
 def compute(data,iso_dict,iso_list,eic_list):
     # New bound mass must contain self, otherwise don't keep climbing up
-    len_iso = len(iso_list)
 
+    # Initialize
+    len_iso = len(iso_list)
     cells_dict = {}
     bmass_dict = {}
     bcell_dict = {}
     eic_dict = dict(zip(iso_list,eic_list))
+
+    # Loop over isos
     for i in range(len_iso):
+        # 1. Get all member cells of iso
         iso = iso_list[i]
         if iso not in iso_dict.keys():
             # must be in iso_dict
             continue
+
         if any([(len(eic_dict[eic]) > 0) for eic in eic_dict[iso]]):
             # immediate children must be leaf nodes
             continue
+
         # for all leaf nodes
         # get the cells of self and inherit from immediate children
         cells_dict[iso] = []
@@ -24,11 +30,12 @@ def compute(data,iso_dict,iso_list,eic_list):
         for eic in eic_dict[iso]:
             cells_dict[iso] += cells_dict[eic]
 
-        # get bound mass
+        # 2. Calculate Bound Mass
 
         bcell_dict[iso],bmass_dict[iso] = bound_mass(data,cells_dict[iso],0.0)
+
+        # 3. Merge Logic
         split_iso = find_split(iso,eic_dict)
-        #if iso in bcell_dict[iso]:
         if split_iso in bcell_dict[iso]:
             # this iso can replace its children
             # because its starting point was bound and it joins the children
@@ -79,7 +86,7 @@ def bound_mass(data,cells,e0):
                      + c_b
                      + 0.5 * c_rho * (c_x*c_x + c_y*c_y + c_z*c_z)
                      ) - c_com
-    threshold = n.where(c_tot < e0)[0]
+    threshold = n.where(c_tot < e0*n.arange(1,1+len(c_tot)) )[0]
     if len(threshold) < 1:
         return cells[order][:0], 0.0
     else:
@@ -148,3 +155,20 @@ def find_split(iso,eic_dict):
         return find_split(eics[0],eic_dict)
     else:
         return iso
+
+def recursive_members(iso_dict,eic_dict,iso):
+    # get all cells of iso
+    output = []
+    output += iso_dict[iso]
+    for child_iso in eic_dict[iso]:
+        output += recursive_members(iso_dict,eic_dict,child_iso)
+    return output
+
+def recursive_child(iso_dict,eic_dict,iso):
+    # get all eic descendents of iso
+    output = []
+    # print(eic_dict[iso])
+    output += eic_dict[iso]
+    for child_iso in eic_dict[iso]:
+        output += recursive_child(iso_dict,eic_dict,child_iso)
+    return output

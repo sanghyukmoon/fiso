@@ -5,6 +5,7 @@ import numpy as n
 import matplotlib.colors as mco
 import pylab as p
 import scipy.ndimage as sn
+import fiso.tools.tools as ftt
 
 def mesh(x,y,z):
     p.pcolormesh(x,y,z,norm=mco.LogNorm(),shading='flat',edgecolors='none')
@@ -48,10 +49,10 @@ def calc_slice(core_dict,index,shape):
         # coords for 2-D planar mask
     return slices, newcoords, slicecoords
 
-def plot_fiso_slice(rho,phi,core_dict,index):
+def calc_plot(rho,phi,core_dict,index):
     slices, newcoords, slicecoords = calc_slice(core_dict,index,rho.shape)
     center_coord = n.unravel_index(index,rho.shape)[2]
-    core_phi = phi[slices][newcoords]
+    core_phi = phi[tuple(slices)][tuple(newcoords)]
     phi0 = n.min(core_phi)
     phi1 = n.max(core_phi)
     conres = 5.
@@ -60,15 +61,40 @@ def plot_fiso_slice(rho,phi,core_dict,index):
     slices[2] = center_coord
     x = n.arange(slices[0].start,slices[0].stop)
     y = n.arange(slices[1].start,slices[1].stop)
-    srho = rho[slices]
-    sphi = phi[slices]
+    srho = rho[tuple(slices)]
+    sphi = phi[tuple(slices)]
     mask = n.zeros(srho.shape)
-    mask[newcoords[:2]] = 1.0
+    mask[tuple(newcoords[:2])] = 1.0
     slicemask = n.zeros(srho.shape)
-    slicemask[slicecoords[:2]] = 1.0
+    slicemask[tuple(slicecoords[:2])] = 1.0
+    return x,y,phi_levels,srho.transpose(),sphi.transpose(),mask.transpose(),slicemask.transpose()
 
+def plot_fiso_slice(rho,phi,core_dict,index):
+    x,y,phi_levels,srho,sphi,mask,slicemask = calc_plot(rho,phi,core_dict,index)
     mesh(x,y,srho.transpose())
-    p.contour(x,y,sphi.transpose(),colors='k',levels=phi_levels,antialiased=False,alpha=1.0,linewidths=1)
-    p.contour(x,y,mask.transpose(),levels=[0.0,0.5,1.0],colors='r',antialiased=False,alpha=0.5,linewidths=1)
-    p.contour(x,y,slicemask.transpose(),levels=[0.0,0.5,1.0],colors='r',antialiased=False,alpha=0.75,linewidths=2)
+    p.contour(x,y,sphi,colors='k',levels=phi_levels,antialiased=False,alpha=1.0,linewidths=1)
+    p.contour(x,y,mask,levels=[0.0,0.5,1.0],colors='r',antialiased=False,alpha=0.5,linewidths=1)
+    p.contour(x,y,slicemask,levels=[0.0,0.5,1.0],colors='r',antialiased=False,alpha=0.75,linewidths=2)
 
+
+def plot_tree_slice(rho,phi,core_dict,bound_dict,index):
+    x,y,phi_levels,srho,sphi,mask,slicemask = calc_plot(rho,phi,core_dict,index)
+    x2,y2,_,_,_,mask2,slicemask2 = calc_plot(rho,phi,bound_dict,index)
+    mesh(x,y,srho.transpose())
+    p.contour(x,y,sphi,colors='k',levels=phi_levels,antialiased=False,alpha=1.0,linewidths=1)
+    p.contour(x,y,mask,levels=[0.0,0.5,1.0],colors='r',antialiased=False,alpha=0.5,linewidths=1)
+    p.contour(x2,y2,mask2,levels=[0.0,0.5,1.0],colors='b',antialiased=False,alpha=0.5,linewidths=1)
+    p.contour(x2,y2,slicemask2,levels=[0.0,0.5,1.0],colors='b',antialiased=False,alpha=0.75,linewidths=2)
+
+def plot_full_tree_bound(rho,iso_dict,bound_dict):
+    surf = rho.sum(axis=2).transpose()
+    x = n.arange(rho.shape[0])
+    y = n.arange(rho.shape[1])
+    datas = [iso_dict,bound_dict]
+    colors0 = ['k','r']
+    vmax0 = n.max(surf)
+    p.pcolormesh(x,y,data,cmap=p.get_cmap('viridis'),vmin = 1e-3*vmax0,vmax=vmax0,norm=mco.LogNorm(),zorder=0,rasterized=True)         
+    for i in range(2):
+        data = ftt(rho,datas[i]).sum(axis=2).transpose()
+        color = colors0[i]
+        p.contour(x,y,data,origin='lower',levels=[0],colors=color,linewidths=1.0)
