@@ -40,7 +40,7 @@ def find(data):
         iso_i = heapq.heappop(val_heap)[1] # the order_i'th smallest
         mfwi = iso_list[iso_i]
         eics  = eic_list[iso_i]
-        print(mfwi,eics,flat_data[mfwi])
+        print(len(val_heap),flat_data[mfwi])
         if labels[mfwi] > -1:
             # this is a "local minimum" which has been explored by equalwalker
             continue
@@ -72,7 +72,7 @@ def find(data):
 
     t1 = time.time()
     print(t1-t0)
-    return iso_dict,labels
+    return iso_dict,labels,iso_list,eic_list
 
 #@jit
 def walker(flat_data,pcn,parent_dict,labels,index0,working,work_set):
