@@ -98,3 +98,16 @@ def plot_full_tree_bound(rho,iso_dict,bound_dict):
         data = ftt.filter_dict(rho,datas[i]).sum(axis=2).transpose()
         color = colors0[i]
         p.contour(x,y,data,origin='lower',levels=[0],colors=color,linewidths=1.0)
+
+def plot_tree_outline(rho,iso_dict):
+    surf = rho.max(axis=2).transpose()
+    x = n.arange(rho.shape[0])
+    y = n.arange(rho.shape[1])
+    colors0 = ['k']
+    vmax0 = n.max(surf)
+    p.pcolormesh(x,y,surf,cmap=p.get_cmap('viridis'),vmin = 1e-3*vmax0,vmax=vmax0,norm=mco.LogNorm(),zorder=0,rasterized=True)
+    for key in iso_dict.keys():
+        output = n.zeros(rho.size)
+        output[iso_dict[key]] = 1.0
+        data = output.reshape(rho.shape).max(axis=2).transpose()
+        p.contour(x,y,data,origin='lower',levels=[0],linewidths=1.0)    
