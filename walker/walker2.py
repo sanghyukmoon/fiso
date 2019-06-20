@@ -31,10 +31,13 @@ def find(data):
     heapq.heapify(val_heap)
     work_set_dict = {}
     working_dict = {}
-    ready_dict = dict(zip(mfw,[True]*len(mfw)))
+    # ready_dict = dict(zip(mfw,[True]*len(mfw)))
     # initialize
     t0 = time.time()
+    jobs = []
     climbing = True
+    from multiprocessing import Event
+    event = Event()
     def update_data(walkerresult):
         mfwi,members,lastcell,working,work_set,ready = walkerresult
         iso_dict[mfwi] = members
@@ -42,7 +45,7 @@ def find(data):
         work_set_dict[mfwi] = work_set
         labels[list(iso_dict[mfwi])] = mfwi
         if lastcell > -1:
-            ready_dict[lastcell] = ready
+            # ready_dict[lastcell] = ready
             for child in recursive_child(iso_list,eic_list,mfwi):
                 parent_dict[child] = lastcell
             parent_dict[mfwi] = lastcell
@@ -53,9 +56,16 @@ def find(data):
             else:
                 # add a new critical point 
                 iso_list.append(lastcell)
-                heapq.heappush(val_heap,(flat_data[lastcell],len(iso_list)-1))
-                eic_list.append([mfwi])        
-        
+                eic_list.append([mfwi])
+            if ready:
+                heapq.heappush(val_heap,(flat_data[lastcell],iso_list.index(lastcell)))
+        print('event set')
+        event.set()
+        return walkerresult
+
+    from multiprocessing import Pool
+    pool = Pool(1)
+                
     while len(val_heap) > 1:
         iso_i = heapq.heappop(val_heap)[1] # the order_i'th smallest
         mfwi = iso_list[iso_i]
@@ -71,7 +81,11 @@ def find(data):
             work_set.update(work_set_dict.pop(eic))
         heapq.heapify(working)
         parent_dict[mfwi] = mfwi
-        walkerresult = walker(flat_data,pcn,parent_dict,labels,mfwi,working,work_set)
+        job = pool.apply_async(walker,args=(flat_data,pcn,parent_dict,labels,mfwi,working,work_set,))
+        #event.wait()
+        #event.clear()
+        walkerresult = job.get()
+        # walkerresult = walker(flat_data,pcn,parent_dict,labels,mfwi,working,work_set)
         update_data(walkerresult)
 
     t1 = time.time()
@@ -136,7 +150,8 @@ def walker(flat_data,pcn,parent_dict,labels,index0,working,work_set):
             growing = False
             lastcell = cell
     # at the end, sort members by data 
-    return index0,members,lastcell,working,work_set,ready
+    return [index0,members,lastcell,working,work_set,ready]
+
 
 def equalwalker(flat_data,pcn,parent_dict,labels,index0,working,work_set):
     # working set of cells, larger than members

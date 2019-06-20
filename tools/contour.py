@@ -108,6 +108,6 @@ def plot_tree_outline(rho,iso_dict):
     p.pcolormesh(x,y,surf,cmap=p.get_cmap('viridis'),vmin = 1e-3*vmax0,vmax=vmax0,norm=mco.LogNorm(),zorder=0,rasterized=True)
     for key in iso_dict.keys():
         output = n.zeros(rho.size)
-        output[iso_dict[key]] = 1.0
+        output[list(iso_dict[key])] = 1.0
         data = output.reshape(rho.shape).max(axis=2).transpose()
         p.contour(x,y,data,origin='lower',levels=[0],linewidths=1.0)    
