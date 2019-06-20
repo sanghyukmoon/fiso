@@ -41,7 +41,7 @@ def find(data):
         mfwi = iso_list[iso_i]
         eics  = eic_list[iso_i]
         print(mfwi,eics,flat_data[mfwi])
-        if label[mfwi] > -1:
+        if labels[mfwi] > -1:
             # this is a "local minimum" which has been explored by equalwalker
             continue
         working = []
