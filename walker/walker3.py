@@ -9,10 +9,7 @@ import time
 from itertools import islice
 from collections import deque
 import heapq
-from multiprocessing import Pool,Manager,Event
-
-
-
+from multiprocessing import Event,Pool
 
 from fiso import fiso
 # printing extra diagnostic messages
@@ -28,98 +25,77 @@ def find(data):
     flat_data = data.reshape(-1)
     labels = -n.ones(len(flat_data),dtype=int) #indices are real index locations
     # set data structures
-    manager = Manager()
-    parent_dict = {}#manager.dict()#{}
+    parent_dict = {}
     parent_dict[-1] = -1
-    iso_dict = {}#manager.dict()#{}
-    iso_list = list(mfw)#manager.list(mfw)
-    eic_list = list([[]]*len(iso_list)) #manager
+    iso_dict = {}
+    iso_list = list(mfw)
+    eic_list = [[]]*len(iso_list)
     val_heap = zip(flat_data[mfw],range(len(iso_list)))
-    heaped_set = set(mfw)
     heapq.heapify(val_heap)
-    work_set_dict = dict()#manager.dict()
-    working_dict = dict()#manager.dict()
-    # ready_dict = dict(zip(mfw,[True]*len(mfw)))
-    # initialize
-    t0 = time.time()
-    climbing = True
-
+    work_set_dict = {}
+    working_dict = {}
+    ready_set = set(mfw)
     nproc = 4
     event = Event()
     space = [None]*nproc
+    jobs = deque([])
+    
+    # initialize
+    t0 = time.time()
+    climbing = True
     def update_data(walkerresult):
-        mfwi,members,lastcell,out_working,out_work_set,ready = walkerresult
-        iso_dict[mfwi] = members
-        working_dict[mfwi] = out_working
-        work_set_dict[mfwi] = out_work_set
-        labels[list(iso_dict[mfwi])] = mfwi
+        root_cell,members,nextmembers,lastcell,working,work_set,ready = walkerresult
+        iso_dict[root_cell] = members
+        working_dict[root_cell] = working
+        work_set_dict[root_cell] = work_set
+        labels[list(iso_dict[root_cell])] = root_cell
         if lastcell > -1:
-            # ready_dict[lastcell] = ready
-            for child in recursive_child(iso_list,eic_list,mfwi):
+            labels[list(nextmembers)] = lastcell
+            parent_dict[lastcell] = lastcell
+            for child in recursive_child(iso_list,eic_list,root_cell):
                 parent_dict[child] = lastcell
-            parent_dict[mfwi] = lastcell
+            parent_dict[root_cell] = lastcell
             if lastcell in iso_list:
                 # add child to pre-existing critical point 
                 ili = iso_list.index(lastcell)
-                eic_list[ili].append(mfwi)
+                eic_list[ili].append(root_cell)
             else:
-                print(mfwi,lastcell)
                 # add a new critical point 
                 iso_list.append(lastcell)
-                eic_list.append([mfwi])
-            
+                eic_list.append([root_cell])
+                heapq.heappush(val_heap,(flat_data[lastcell],iso_list.index(lastcell)))
             if ready:
-                if lastcell not in heaped_set:
-                    heaped_set.add(lastcell)
-                    heapq.heappush(val_heap,(flat_data[lastcell],iso_list.index(lastcell)))
-
-        #print('event set')
+                ready_set.add(root_cell)
         event.set()
         space.append(None)
         return walkerresult
 
     pool = Pool(nproc)
-
-
-    # MAIN LOOP
-    while ((len(val_heap) > 1) or (len(space) < nproc)):
-
-        # check for ready 
-        for iso in set(iso_list).difference(set(iso_dict.keys())).difference(heaped_set):
+    
+    while len(iso_dict.keys()) < len(iso_list)-1:
+        '''
+        for iso in set(iso_list).difference(set(iso_dict.keys())):
             # these need to be done
-            parent_of_lessers = set([parent_dict[label] for label in set(labels[pcn[iso][flat_data[pcn[iso]] < flat_data[iso]]]) ])
-            if parent_of_lessers.issubset(set(eic_list[iso_list.index(iso)])):
-                # this one is ready
-                
-                newitem = (flat_data[iso],iso_list.index(iso))
-                heapq.heappush(val_heap,newitem)
-                heaped_set.add(iso)
-
-        # when only 1 is on the heap 
-        if len(val_heap) == 1:
-            # is there a running job?
-            if len(space) < nproc:
-                # wait for job to finish 
-                event.wait()
-                if len(space) == 0:
-                    event.clear()            
-                continue
-            # are there others to work on?
-            elif len(iso_list) > len(iso_dict):
-                print('others')
-                newitem = sorted([(flat_data[iso],iso_list.index(iso)) for iso in set(iso_list).difference(set(iso_dict.keys()))])[0]
-                newiso = iso_list[newitem[1]]
-                if newiso not in heaped_set:
-                    heapq.heappush(val_heap,newitem)
-                    heaped_set.add(newiso)
-                continue
-            else:
-                break
-
+            if iso not in ready_set:
+                parent_of_lessers = set([parent_dict[label] for label in labels[pcn[iso][flat_data[pcn[iso]] < flat_data[iso]]]])
+                if -1 not in parent_of_lessers:
+                    # this one is ready
+                    ready_set.add(iso)
+        '''
         iso_i = heapq.heappop(val_heap)[1] # the order_i'th smallest
+
         mfwi = iso_list[iso_i]
         eics  = eic_list[iso_i]
-        print(len(val_heap),flat_data[mfwi],mfwi)
+
+        while mfwi not in ready_set:
+            if len(jobs) > 0:
+                event.clear()
+                update_data(jobs.popleft().get())
+                event.wait()
+            else:
+                ready_set.add(mfwi)
+                
+        print(len(val_heap),flat_data[mfwi])
         if labels[mfwi] > -1:
             # this is a "local minimum" which has been explored by equalwalker
             continue
@@ -130,20 +106,16 @@ def find(data):
             work_set.update(work_set_dict.pop(eic))
         heapq.heapify(working)
         parent_dict[mfwi] = mfwi
-        #job = pool.apply_async(walker,args=(flat_data,pcn_parts,parent_dict,labels,mfwi,working,work_set,))
-        # take up a space 
         space.pop()
-        # if all spaces are taken, force us to wait for something to open
+        jobs.append(pool.apply_async(walker,args=(flat_data,pcn_parts,parent_dict,labels,mfwi,working,work_set,)))
+        #jobs.append(walker(flat_data,pcn_parts,parent_dict,labels,mfwi,working,work_set))
         if len(space) == 0:
             event.clear()
-        job = pool.apply_async(walker,args=(flat_data,pcn_parts,parent_dict,labels,mfwi,working,work_set,),callback=update_data)
-        # callback triggers event and adds a space when it finishes
-        event.wait()
+            update_data(jobs.popleft().get())
+            event.wait()
 
-        #walkerresult = job.get()
-        # walkerresult = walker(flat_data,pcn,parent_dict,labels,mfwi,working,work_set)
-        #update_data(walkerresult)
-
+        
+        
     t1 = time.time()
     print(t1-t0)
     return iso_dict,labels,iso_list,eic_list
@@ -164,6 +136,7 @@ def walker(flat_data,pcn_parts,parent_dict,labels,index0,working,work_set):
             heapq.heappush(working,newitem)
             work_set.add(cell)
     members = deque([index0]) # cells already added to index0
+    nextmembers = deque([])
     growing = True
     lastcell = -1
     while growing:
@@ -171,16 +144,23 @@ def walker(flat_data,pcn_parts,parent_dict,labels,index0,working,work_set):
 
         cval,cell = working[0]
         pcnc = pcn[cell]
-        lesser = flat_data[pcnc] < cval
 
+        # process equal cells
         if cval in flat_data[pcnc]:
-            last_cell, ready = equalwalker(flat_data,pcn,parent_dict,labels,cell,working,work_set)
+            last_cell, ready, equalmembers = equalwalker(flat_data,pcn,parent_dict,labels,cell,working,work_set)
             heapq.heappop(working)
             if last_cell > -1:
+                # equalmembers belong to new iso cell
+                nextmembers.extend(equalmembers)
                 growing = False
+            else:
+                # equalmembers belong to current working cell
+                labels[equalmembers] = index0
+                members.extend(equalmembers)
             continue
 
-        
+        # process lesser cells
+        lesser = flat_data[pcnc] < cval        
         lpc = set(labels[pcnc[lesser]])
         plpc = list(set([parent_dict[lpci] for lpci in lpc]))
 
@@ -211,7 +191,7 @@ def walker(flat_data,pcn_parts,parent_dict,labels,index0,working,work_set):
             growing = False
             lastcell = cell
     # at the end, sort members by data 
-    return [index0,members,lastcell,working,work_set,ready]
+    return [index0,members,nextmembers,lastcell,working,work_set,ready]
 
 
 def equalwalker(flat_data,pcn,parent_dict,labels,index0,working,work_set):
@@ -244,8 +224,8 @@ def equalwalker(flat_data,pcn,parent_dict,labels,index0,working,work_set):
     # parents of lessers to cell
     ready = True
     if len(plc) == 1:
-        # add entire region
-        labels[list(members)] = plc[0]
+        # add entire region (moved to walker)
+        # labels[list(members)] = plc[0]
         
         # prevents members from being worked on in future 
         work_set.update(set(members))
@@ -258,15 +238,14 @@ def equalwalker(flat_data,pcn,parent_dict,labels,index0,working,work_set):
         last_cell = -1
     else:
         # start new region
-        labels[list(members)] = index0
-        parent_dict[index0] = index0
+        # moved to walker
+        # labels[list(members)] = index0
+        # moved to update_data
+        # parent_dict[index0] = index0
         last_cell = index0
         if -1 in plc:
             ready = False
-        # wish I could do this:
-        #for child in recursive_child(iso_list,eic_list,mfwi):
-        #    parent_dict[child] = lastcell
-    return last_cell, ready
+    return last_cell, ready, list(members)
 
 def recursive_num_members(iso_dict,eic_dict,iso):
     output = len(iso_dict[iso])

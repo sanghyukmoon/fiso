@@ -321,7 +321,7 @@ def precompute_neighbor(shape,corner=True,mode='clip'):
     #bcn shape num_neighbors x cells
     pcn[bi] = bpcn
     return pcn
-
+    
 def boundary_i_bcn(shape,dtype,itp,corner,mode):
     # returns boundary indices and boundary's neighbor indices.
     boundary_indices = gbi(shape,dtype)
@@ -347,3 +347,27 @@ def subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos):
 
     labels[orderi] = nls0[larger]
     iso_dict[nls0[larger]].append(orderi)
+
+
+def setup_mem(data,corner=corner_bool):
+    shape = data.shape
+    dlist = data.reshape(-1)
+    nps = n.prod(shape)
+    #save on memory when applicable
+    if nps < 2**31:
+        dtype = n.int32
+    else:
+        dtype = n.int64
+    #set up array of cartesian displacements (itp)
+    dim = len(shape)
+    itp = calc_itp(dim,corner,dtype)
+    bi,bpcn = boundary_i_bcn(shape,dtype,itp,corner,boundary_mode)
+    displacements = compute_displacement(shape,corner)
+    class pcnDict(dict):
+        def __getitem__(self,index):
+            return self.get(index,index+displacements)
+    pcn = pcnDict(zip(bi,bpcn))
+    mfw0 = n.where(find_minima_no_bc(data).reshape(-1))[0]
+    mfw1 = find_minima_boundary_only(dlist,bi,bpcn)
+    mfw = n.unique(n.sort(n.append(mfw0,mfw1))) 
+    return pcn,mfw,bi,bpcn,displacements

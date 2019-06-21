@@ -1,5 +1,5 @@
 from test_setup import *
-import fiso.walker.walker as fww
+import fiso.walker.walker3 as fww
 import fiso.tools.contour as ftc
 timer('init')
 iso_dict,label,_,_ = fww.find(potential)
