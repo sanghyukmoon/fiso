@@ -271,6 +271,7 @@ def gbi(shape,dtype):
     return bi
 
 def calc_itp(dim,corner,dtype):
+    # Compute 1-D flattened array offsets corresponding to neighbors 
     offs = [-1,0,1]
     itp = list(itertools.product(offs,repeat=dim))
     if corner:
@@ -341,7 +342,7 @@ def subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos):
     #add smaller iso cells to larger dict
     iso_dict[nls0[larger]] += iso_dict[nls0[smaller]]
     #relabel smaller iso cells to larger
-    labels[iso_dict[nls0[smaller]]] = nls0[larger]
+    labels[tuple(iso_dict[nls0[smaller]])] = nls0[larger]
     active_isos.remove(nls0[smaller])
     iso_dict.pop(nls0[smaller])
 

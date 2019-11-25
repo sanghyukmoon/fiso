@@ -1,19 +1,19 @@
-# Uses fiso_mem_sp to set X, Y shearing periodic (see function shear_bcn)
-# X faces are sheared in the Y direction (bound_axis=0,shear_axis=1)
-# Z direction clipped
-
 import fiso.ext.fiso_tree as tree
 tree.fiso.boundary_mode = 'wrap' # makes boundaries periodic
 import fiso.tools.tree_bound as bound
 import fiso.tools.contour
 
 def find(data):
-    return tree.find(data)
+    # compute contour tree
     # returns iso_dict, iso_labels, iso_list, eic_list
+    return tree.find(data)
+
 
 def compute_bound(data,iso_dict,iso_list,eic_list):
     # data here is rho phi pressure bpressure velx vely velz
+    # returns parent_iso_dict, bound_iso_dict
     return bound.compute(data,iso_dict,iso_list,eic_list)
+
 
 def plot(rho,iso_dict,bound_dict):
     return fiso.tools.contour.plot_full_tree_bound(rho,iso_dict,bound_dict)
