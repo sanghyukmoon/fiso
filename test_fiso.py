@@ -1,6 +1,8 @@
 import sys
+sys.path = sys.path[::-1]
+print(sys.path)
 import numpy as n
-import fiso
+import fiso.fiso as fiso
 
 size = 128
 shape = [size]*3
@@ -30,7 +32,7 @@ import matplotlib
 import matplotlib.colors as mco
 matplotlib.use('agg')
 import pylab as p
-import tools.contour as fc
+import fiso.tools.contour as fc
 
 
 def mesh(arr):                                                            
