@@ -71,7 +71,7 @@ def calc_plot(rho,phi,core_dict,index):
 
 def plot_fiso_slice(rho,phi,core_dict,index):
     x,y,phi_levels,srho,sphi,mask,slicemask = calc_plot(rho,phi,core_dict,index)
-    mesh(x,y,srho.transpose())
+    mesh(x,y,srho)
     p.contour(x,y,sphi,colors='k',levels=phi_levels,antialiased=False,alpha=1.0,linewidths=1)
     p.contour(x,y,mask,levels=[0.0,0.5,1.0],colors='r',antialiased=False,alpha=0.5,linewidths=1)
     p.contour(x,y,slicemask,levels=[0.0,0.5,1.0],colors='r',antialiased=False,alpha=0.75,linewidths=2)
@@ -80,7 +80,7 @@ def plot_fiso_slice(rho,phi,core_dict,index):
 def plot_tree_slice(rho,phi,core_dict,bound_dict,index):
     x,y,phi_levels,srho,sphi,mask,slicemask = calc_plot(rho,phi,core_dict,index)
     x2,y2,_,_,_,mask2,slicemask2 = calc_plot(rho,phi,bound_dict,index)
-    mesh(x,y,srho.transpose())
+    mesh(x,y,srho)
     p.contour(x,y,sphi,colors='k',levels=phi_levels,antialiased=False,alpha=1.0,linewidths=1)
     p.contour(x,y,mask,levels=[0.0,0.5,1.0],colors='r',antialiased=False,alpha=0.5,linewidths=1)
     p.contour(x2,y2,mask2,levels=[0.0,0.5,1.0],colors='b',antialiased=False,alpha=0.5,linewidths=1)
