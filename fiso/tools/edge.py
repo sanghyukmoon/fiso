@@ -1,6 +1,7 @@
 # code for identifying the edge cells of a core. 
 
 import numpy as n
+from ..ext.fiso_periodic import shear_bcn, compute_displacement
 
 def iso_dict_edge(iso_dict,bi,bpcn,displacements):
     """Find edge cells for all iso objects
@@ -47,3 +48,16 @@ def iso_edge(iso,bi,bpcn,displacements):
     nli[mem_as[mem_as_bi[mem_as_bi < memlen]]] = bpcn[mem_as_bi < memlen]
     # if any neighbor isn't a member, this member is edge
     return members[n.any(n.isin(nli,members,invert=True),axis=1)]
+
+def make_cd_edge(cells_dict,cell_shear,shape):
+    # Initialize
+    out_cd = {}
+    # Compute bi, bpcn (boundary neighbors)
+    corner_bool = True
+    bi,bpcn = shear_bcn(shape,cell_shear)
+    displacements = compute_displacement(shape,corner_bool)
+
+    for iso in cells_dict.keys():
+        out_cd[iso] = iso_edge(cells_dict[iso],bi,bpcn,displacements)
+        # edge cells
+    return out_cd
