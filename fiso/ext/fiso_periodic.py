@@ -1,13 +1,12 @@
-# Shear Periodic Boundary Conditions
-# X, Y periodic.
-# Z clip
+# Periodic Boundary Conditions
+# X, Y, Z periodic.
 
 # mem version takes less memory but will take 20% more time per cell
 
 from fiso import fiso
 import numpy as n
 
-boundary_mode = ['wrap','wrap','clip']
+boundary_mode = ['wrap','wrap','wrap']
 corner_bool = True
 cell_shear = 0
 # add shear to Y when X = X_min, X_max
