@@ -94,58 +94,6 @@ def bound_mass(data,cells,e0):
         index = threshold[-1]
         return cells[order][:index], cc_rho[index]
 
-def old_compute(data,iso_dict,iso_list,eic_list):
-    # When children have less bound mass, remove child nodes from tree, return leaf nodes
-    len_iso = len(iso_list)
-
-    cells_dict = {}
-    bmass_dict = {}
-    bcell_dict = {}
-    eic_list = eic_list.copy()
-    for i in range(len_iso):
-        iso = iso_list[i]
-        # get cells
-        if iso in iso_dict.keys():
-            pass
-        else:
-            # skip this one
-            continue
-        cells_dict[iso] = []
-        cells_dict[iso] += iso_dict[iso]
-        for eic in eic_dict[iso]:
-            cells_dict[iso] += cells_dict[eic]
-        # get bound mass
-        bcell_dict[iso],bmass_dict[iso] = bound_mass(data,cells_dict[iso])
-        child_bound = 0
-        for eic in eic_list[i]:
-            child_bound += bmass_dict[eic]
-        if child_bound > bmass_dict[iso]:
-            # this iso is smaller than its children
-            # parents of this iso need to know its true underlying bound mass
-            # is that of its children
-            bmass_dict[iso] = child_bound
-        else:
-            # this iso can replace its children
-            # remove children from output cell dict
-            for eic in eic_dict[iso]:
-                if eic in cells_dict.keys():
-                    cells_dict.pop(eic)
-                if eic in bcell_dict.keys():
-                    bcell_dict.pop(eic)
-            eic_list[i] = []
-            # remove children from eic list so this node is new leaf
-
-    # in the end surviving nodes are in cells_dict
-    for i in range(len(eic_list)):
-        if len(eic_list[i]) > 0:
-            # only keep leaf nodes with no immediate children
-            iso = iso_list[i]
-            if iso in cells_dict.keys():
-                cells_dict.pop(iso)
-            if iso in bcell_dict.keys():
-                bcell_dict.pop(iso)
-    return cells_dict,bcell_dict
-
 def recursive_members(iso_dict,eic_dict,iso):
     # get all cells of iso
     output = []
