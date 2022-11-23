@@ -179,11 +179,6 @@ def tree_subsume(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_
 # and resolve from bottom to top. 1 pass.
 # Each iso ixs processed before its parents.
 
-def recursive_num_members(iso_dict,eic_dict,iso):
-    output = len(iso_dict[iso])
-    for child_iso in eic_dict[iso]:
-        output += recursive_num_members(iso_dict,eic_dict,child_iso)
-    return output
 
 def recursive_members(iso_dict,eic_dict,iso):
     output = []

@@ -82,7 +82,7 @@ def shear_bcn(shape,cell_shear):
 
 def shear_pcn(shape,cell_shear):
     bi,bpcn = shear_bcn(shape,cell_shear)
-    displacements = fiso.compute_displacement(shape,corner_bool)
+    displacements = compute_displacement(shape,corner_bool)
     class pcnDict(dict):
         def __getitem__(self,index):
             return self.get(index,index+displacements)
@@ -106,4 +106,3 @@ def compute_displacement(shape,corner):
     return displacements
 
 fiso.setup = setup
-find = fiso.find

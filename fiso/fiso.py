@@ -45,89 +45,6 @@ def setup(data,cut):
     if verbose: print(len(mfw),'minima')
     return mfw,order,cutoff,pcn
 
-def find(data,cut=''):
-    # take in nd data
-    # find iso
-    # setup
-    mfw,order,cutoff,pcn = setup(data,cut)
-    #iso dict and labels setup
-    iso_dict = {}
-    labels = -np.ones(len(order),dtype=int) #indices are real index locations
-    #inside loop, labels are accessed by labels[order[i]]
-    for mini in mfw:
-        iso_dict[mini] = deque([mini])
-    labels[mfw] = mfw
-    active_isos = set(mfw) #real index
-
-    # loop
-    indices = iter(range(cutoff))
-    # note indices = iter(xrange(cutoff)) is ~1% faster loop in python2.7
-    # note looping over i and getting order[i] is only
-    # 1% slower than iter over order
-    # added convenience of smooth exit from loop
-    for i in indices:
-        orderi = order[i]
-        # grab unique neighbor labels
-        # nli = pcn[:,orderi]
-        nls = set(labels[
-            pcn[orderi]
-        ])
-        nls0 = nls.copy()
-        nls0.discard(-1)
-        nls0.discard(-2)
-        nls0 = list(nls0)
-        # nls = np.unique(labels[nli]) #this is much slower
-        # nnc = (nls >= 0).sum() #this is 2x slower
-        nnc = len(nls0)
-        # number of neighbors in isos
-
-        # first note this cell has been explored
-        labels[orderi] = -2
-        if (nnc > 0):
-            if -2 in nls:
-                # a neighbor is previously explored but not isod (boundary), deactivate isos
-                collide(active_isos,nls0)
-                if len(active_isos) == 0:
-                    next(islice(indices,cutoff-i-1,cutoff-i-1),None)
-                continue
-            if (nnc == 1):
-                # only 1 neighbor, inherit
-                inherit = nls0[0]
-                if inherit in active_isos:
-                    labels[orderi] = inherit
-                    iso_dict[inherit].append(orderi)
-                    # inherit from neighbor, only 1 is positive/max
-                continue
-            elif (nnc == 2):
-                if set(nls0) <= active_isos:
-                    # check smaller neighbor if it is too small
-                    l0 = len(iso_dict[nls0[0]])
-                    l1 = len(iso_dict[nls0[1]])
-                    if min(l0,l1) < 27:
-                        subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos)
-                        continue
-            # There are 2 or more large neighbors to deactivate
-            # isoi is real index
-            collide(active_isos,nls0)
-            if verbose:
-                print(i,' of ',cutoff,' cells ',
-                      len(active_isos),' minima')
-            if len(active_isos) == 0:
-                next(islice(indices,cutoff-i-1,cutoff-i-1),None)
-                # skip up to next iso or end
-        else:
-            # no lesser neighbors
-            if orderi in active_isos:
-                labels[orderi] = orderi
-    dt = timer('loop finished for ' + str(cutoff) + ' items')
-    if verbose: print(str(dt/i) + ' per cell')
-    if verbose: print(str(dt/cutoff) + ' per total cell')
-    return iso_dict,labels
-
-#if alone, start new iso
-#if neighbor is in an active iso, add to iso
-#if neighor is in an inactive iso, don't add to iso
-#if 2 or more neighbors are in different isos, dont add to a iso.
 
 def find_minima_no_bc(arr):
     '''
@@ -281,21 +198,6 @@ def calc_itp(dim,corner,dtype):
     itp = np.array(itp,dtype=dtype)
     return itp
 
-def compute_displacement(shape,corner):
-    nps = np.prod(shape)
-    #save on memory when applicable
-    if nps < 2**31:
-        dtype = np.int32
-    else:
-        dtype = np.int64
-    dim = len(shape)
-    itp = calc_itp(dim,corner,dtype)
-    ishape = shape[::-1]
-    factor = np.cumprod(np.append([1],shape[::-1]))[:-1][::-1]
-    factor = factor.astype(dtype)
-    displacements = (itp*factor).sum(axis=1)
-    return displacements
-
 def precompute_neighbor(shape,corner=True,mode='clip'):
     nps = np.prod(shape)
     #save on memory when applicable
@@ -330,45 +232,3 @@ def boundary_i_bcn(shape,dtype,itp,corner,mode):
                               dtype=dtype)
     bpcn = boundary_pcn(boundary_coords,itp,shape,corner,mode=mode).astype(dtype)
     return boundary_indices,bpcn
-
-def collide(active_isos,nls0):
-    for nlsi in nls0:
-        if nlsi in active_isos:
-            active_isos.remove(nlsi)
-
-def subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos):
-    smaller = np.argmin([l0,l1])
-    larger = 1-smaller
-    #add smaller iso cells to larger dict
-    iso_dict[nls0[larger]] += iso_dict[nls0[smaller]]
-    #relabel smaller iso cells to larger
-    labels[iso_dict[nls0[smaller]]] = nls0[larger]
-    active_isos.remove(nls0[smaller])
-    iso_dict.pop(nls0[smaller])
-
-    labels[orderi] = nls0[larger]
-    iso_dict[nls0[larger]].append(orderi)
-
-
-def setup_mem(data,corner=corner_bool):
-    shape = data.shape
-    dlist = data.reshape(-1)
-    nps = np.prod(shape)
-    #save on memory when applicable
-    if nps < 2**31:
-        dtype = np.int32
-    else:
-        dtype = np.int64
-    #set up array of cartesian displacements (itp)
-    dim = len(shape)
-    itp = calc_itp(dim,corner,dtype)
-    bi,bpcn = boundary_i_bcn(shape,dtype,itp,corner,boundary_mode)
-    displacements = compute_displacement(shape,corner)
-    class pcnDict(dict):
-        def __getitem__(self,index):
-            return self.get(index,index+displacements)
-    pcn = pcnDict(zip(bi,bpcn))
-    mfw0 = np.where(find_minima_no_bc(data).reshape(-1))[0]
-    mfw1 = find_minima_boundary_only(dlist,bi,bpcn)
-    mfw = np.unique(np.sort(np.append(mfw0,mfw1)))
-    return pcn,mfw,bi,bpcn,displacements
