@@ -2,53 +2,6 @@
 import numpy as np
 import xarray as xr
 
-def general_dict(array,iso_dict,function):
-    # maps a function(array,iso_dict[key]) to all keys and return dict
-    if len(array.shape) > 1:
-        array = array.reshape(-1)
-    val_dict = {}
-    for key in iso_dict.keys():
-        val_dict[key] = function(array,iso_dict[key])
-    return val_dict
-
-def map_dict(array,iso_dict,function):
-    # maps a function(array,iso_dict[key]) to all keys and return dict
-    if len(array.shape) > 1:
-        array = array.reshape(-1)
-    val_dict = {}
-    for key in iso_dict.keys():
-        val_dict[key] = function(array[iso_dict[key]])
-    return val_dict
-
-def value_dict(array,iso_dict):
-    # returns dict with array values
-    if len(array.shape) > 1:
-        array = array.reshape(-1)
-    val_dict = {}
-    for key in iso_dict.keys():
-        val_dict[key] = array[iso_dict[key]]
-    return val_dict
-
-def sum_dict(array,iso_dict):
-    return map_dict(array,iso_dict,np.sum)
-
-def len_dict(array,iso_dict):
-    return map_dict(array,iso_dict,len)
-
-def sort_to_list(val_dict):
-    sorted_keys = np.sort(val_dict.keys())
-    lsk = len(sorted_keys)
-    out_list = [None]*lsk
-    for i in range(lsk):
-        out_list[i] = val_dict[sorted_keys[i]]
-    return out_list
-
-def sum_list(array,iso_dict):
-    return sort_to_list(sum_dict(array,iso_dict))
-
-def len_list(array,iso_dict):
-    return sort_to_list(len_dict(array,iso_dict))
-
 def filter_dict(array,iso_dict):
     # keep only values that are in iso_dict
     index = []

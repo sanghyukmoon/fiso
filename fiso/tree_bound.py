@@ -1,5 +1,6 @@
 # Compute bound mass in a hierarchical way
 import numpy as np
+from .tools import find_split
 
 def compute(data,iso_dict,iso_list,eic_list):
     # New bound mass must contain self, otherwise don't keep climbing up
@@ -144,17 +145,6 @@ def old_compute(data,iso_dict,iso_list,eic_list):
             if iso in bcell_dict.keys():
                 bcell_dict.pop(iso)
     return cells_dict,bcell_dict
-
-def find_split(iso,eic_dict):
-    # find the point where objects split
-    eics = eic_dict[iso]
-    le = len(eics)
-    if le == 0:
-        return iso
-    elif le == 1:
-        return find_split(eics[0],eic_dict)
-    else:
-        return iso
 
 def recursive_members(iso_dict,eic_dict,iso):
     # get all cells of iso
