@@ -1,7 +1,6 @@
 # Tools for working with iso_dicts
-
-
-import numpy as n
+import numpy as np
+import xarray as xr
 
 def general_dict(array,iso_dict,function):
     # maps a function(array,iso_dict[key]) to all keys and return dict
@@ -31,13 +30,13 @@ def value_dict(array,iso_dict):
     return val_dict
 
 def sum_dict(array,iso_dict):
-    return map_dict(array,iso_dict,n.sum)
+    return map_dict(array,iso_dict,np.sum)
 
 def len_dict(array,iso_dict):
     return map_dict(array,iso_dict,len)
 
 def sort_to_list(val_dict):
-    sorted_keys = n.sort(val_dict.keys())
+    sorted_keys = np.sort(val_dict.keys())
     lsk = len(sorted_keys)
     out_list = [None]*lsk
     for i in range(lsk):
@@ -56,9 +55,32 @@ def filter_dict(array,iso_dict):
     for value in iso_dict.values():
         index += list(value)
     flat = array.reshape(-1)
-    output = n.full(len(flat), n.nan)
+    output = np.full(len(flat), np.nan)
     output[index] = 1.0*flat[index]
     return output.reshape(array.shape)
+
+def filter_var(var, iso_dict=None, iso=None):
+    """Set var = 0 outside the region defined by iso_dict
+
+    Arguments
+    ---------
+    var: xarray.DataArray
+        variable to be filtered (rho, phi, etc.)
+    iso_dict: FISO object dictionary
+    iso (optional): int
+        id (dict key) of the object to select
+
+    Return
+    ------
+    res: Filtered DataArray
+    """
+    if iso_dict==None:
+        return var
+    if iso:
+        iso_dict = dict(iso=iso_dict[iso])
+    res = filter_dict(var.data, iso_dict)
+    res = xr.DataArray(data=res, coords=var.coords, dims=var.dims)
+    return res
 
 def find_split(iso,eic_dict):
     # For a given iso and child data eic_dict, find the point where iso splits
