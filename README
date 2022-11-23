@@ -83,12 +83,3 @@ fiso.boundary_pcn to set the neighbor indices of the boundary cells.
 Default boundary condition:
 fiso.boundary_pcn clips the boundary in numpy.ravel_multi_index, so that the neighbors include itself, but do not extend past the box. Since the algorithm only depends on lesser neighbors, a cell can "neighbor" itself without problems. 
 fiso.find_minima also clips the box. The default mode of scipy.ndimage.filters.minimum_filter is "reflect". 
-
-
-# Other Files
-
-fiso.test_fiso contains an example with 4 point particles with smoothing
-
-fiso.tools.contour contains code for showing contours
-
-test.png is the output of test_core.py

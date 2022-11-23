@@ -1,5 +1,4 @@
 This directory is meant to hold a few kinds of boundary condition functions
 
-
 boundary_mode corresponds to mode for numpy.ravel_multi_index
 corner_bool corresponds to fiso.calc_itp which calculates the 1-D offsets corresponding to neighbors
