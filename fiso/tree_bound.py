@@ -62,15 +62,15 @@ def bound_mass(data,cells,e0):
     # assume data is the following:
     cells = np.array(cells)
     rho,phi,pressure,bpressure,velx,vely,velz = data
-    pre_phi = phi.reshape(-1)[cells]
+    pre_phi = phi.flatten()[cells]
     order = np.argsort(pre_phi)
     c_phi = pre_phi[order]
-    c_rho = rho.reshape(-1)[cells][order]
-    c_p = pressure.reshape(-1)[cells][order]
-    c_b = bpressure.reshape(-1)[cells][order]
-    c_x = velx.reshape(-1)[cells][order]
-    c_y = vely.reshape(-1)[cells][order]
-    c_z = velz.reshape(-1)[cells][order]
+    c_rho = rho.flatten()[cells][order]
+    c_p = pressure.flatten()[cells][order]
+    c_b = bpressure.flatten()[cells][order]
+    c_x = velx.flatten()[cells][order]
+    c_y = vely.flatten()[cells][order]
+    c_z = velz.flatten()[cells][order]
 
     c_phi0 = c_phi[-1]
 

@@ -24,8 +24,8 @@ def setup(data,cut):
     timer()
     #prepare data
     dshape = data.shape
-    data_flat = data.reshape(-1) #COPY
-    order = data_flat.argsort() #an array of real index locations #COPY
+    data_flat = data.flatten()
+    order = data_flat.argsort() # sort phi in ascending order.
     timer('sort')
     cutoff = len(order) #number of cells to process
     #optional cutoff
@@ -37,7 +37,7 @@ def setup(data,cut):
     timer('precompute neighbor indices')
 
     #timer('init short')
-    minima_flat = find_minima_global(data, boundary_mode).reshape(-1)
+    minima_flat = find_minima_global(data, boundary_mode).flatten()
     #indices of the minima in original
     mfw = np.where(minima_flat)[0]
     #mfw is real index
@@ -52,7 +52,7 @@ def find_minima_no_bc(arr):
     '''
     # initially doesnt allow any boundary cells to be minima
     local_min = (arr == minimum_filter(arr, size=3, mode='constant',
-                                       cval=-np.inf)).reshape(-1)
+                                       cval=-np.inf)).flatten()
     return local_min
 
 def find_minima_boundary_only(data_flat,indices,bcn):
@@ -135,9 +135,9 @@ def gbi_axis(shape,dtype,axis):
         #slicing on index j makes dni[j] vary on index j and copy on other dimensions with desired shape nzs
         ndnis[j] = dni[j][tuple(selj)] + nzs
     ndnis[i] = 0
-    face0 = list(np.ravel_multi_index(ndnis,shape).reshape(-1))
+    face0 = list(np.ravel_multi_index(ndnis,shape).flatten())
     ndnis[i] = shape[i]-1
-    face1 = list(np.ravel_multi_index(ndnis,shape).reshape(-1))
+    face1 = list(np.ravel_multi_index(ndnis,shape).flatten())
     return face0,face1
 
 def gbi(shape,dtype):
@@ -169,9 +169,9 @@ def gbi(shape,dtype):
             #slicing on index j makes dni[j] vary on index j and copy on other dimensions with desired shape nzs
             ndnis[j] = dni[j][tuple(selj)] + nzs
         ndnis[i] = 0
-        bi += list(np.ravel_multi_index(ndnis,shape).reshape(-1))
+        bi += list(np.ravel_multi_index(ndnis,shape).flatten())
         ndnis[i] = shape[i]-1
-        bi += list(np.ravel_multi_index(ndnis,shape).reshape(-1))
+        bi += list(np.ravel_multi_index(ndnis,shape).flatten())
     return bi
 
 def calc_itp(dim,corner,dtype):

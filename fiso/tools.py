@@ -7,7 +7,7 @@ def filter_dict(array,iso_dict):
     index = []
     for value in iso_dict.values():
         index += list(value)
-    flat = array.reshape(-1)
+    flat = array.flatten()
     output = np.full(len(flat), np.nan)
     output[index] = 1.0*flat[index]
     return output.reshape(array.shape)
