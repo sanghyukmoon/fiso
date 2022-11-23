@@ -3,7 +3,7 @@
 
 # mem version takes less memory but will take 20% more time per cell
 
-from fiso import fiso
+from .. import fiso
 import numpy as np
 
 boundary_mode = ['wrap','wrap','wrap']

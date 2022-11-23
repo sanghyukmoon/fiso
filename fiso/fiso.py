@@ -8,7 +8,7 @@ from collections import deque
 # printing extra diagnostic messages
 verbose = True
 # how to determine neighbors of boundary cells
-boundary_mode = 'clip'
+boundary_mode = 'wrap'
 # whether diagonal cells are neighbors
 corner_bool = True
 time.prevtime = time.time()

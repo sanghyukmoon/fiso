@@ -4,18 +4,12 @@
 # of each member
 
 import numpy as np
-import scipy.ndimage as sn
-import time
 from itertools import islice
 from collections import deque
-
-from fiso import fiso
+from ..fiso import timer, setup
 
 # printing extra diagnostic messages
 verbose = True
-# how to determine neighbors of boundary cells
-timer = fiso.timer
-setup = fiso.setup
 
 def find(data,cut=''):
     mfw,order,cutoff,pcn = setup(data,cut)
