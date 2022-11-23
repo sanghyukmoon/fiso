@@ -1,8 +1,6 @@
-*.png
 *.pyc
-*~
-*.npy
+__pycache__
 *.pdf
 *.gif
-test/
-devel/
+*.png
+*.npy

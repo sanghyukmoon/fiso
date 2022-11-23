@@ -1,5 +1,5 @@
 # Compute bound mass in a hierarchical way
-import numpy as n
+import numpy as np
 
 def compute(data,iso_dict,iso_list,eic_list):
     # New bound mass must contain self, otherwise don't keep climbing up
@@ -59,10 +59,10 @@ def compute(data,iso_dict,iso_list,eic_list):
 
 def bound_mass(data,cells,e0):
     # assume data is the following:
-    cells = n.array(cells)
+    cells = np.array(cells)
     rho,phi,pressure,bpressure,velx,vely,velz = data
     pre_phi = phi.reshape(-1)[cells]
-    order = n.argsort(pre_phi)
+    order = np.argsort(pre_phi)
     c_phi = pre_phi[order]
     c_rho = rho.reshape(-1)[cells][order]
     c_p = pressure.reshape(-1)[cells][order]
@@ -74,19 +74,19 @@ def bound_mass(data,cells,e0):
     c_phi0 = c_phi[-1]
 
     # compute center of mass quantities
-    cc_rho = n.cumsum(c_rho)
-    cc_x0 = n.cumsum(c_rho*c_x)
-    cc_y0 = n.cumsum(c_rho*c_y)
-    cc_z0 = n.cumsum(c_rho*c_z)
+    cc_rho = np.cumsum(c_rho)
+    cc_x0 = np.cumsum(c_rho*c_x)
+    cc_y0 = np.cumsum(c_rho*c_y)
+    cc_z0 = np.cumsum(c_rho*c_z)
 
     c_com = 0.5 * (cc_x0*cc_x0 + cc_y0*cc_y0 + cc_z0*cc_z0)/cc_rho
 
-    c_tot = n.cumsum((c_phi - c_phi0) * c_rho +
+    c_tot = np.cumsum((c_phi - c_phi0) * c_rho +
                      + 1.5*c_p
                      + c_b
                      + 0.5 * c_rho * (c_x*c_x + c_y*c_y + c_z*c_z)
                      ) - c_com
-    threshold = n.where(c_tot < e0*n.arange(1,1+len(c_tot)) )[0]
+    threshold = np.where(c_tot < e0*np.arange(1,1+len(c_tot)) )[0]
     if len(threshold) < 1:
         return cells[order][:0], 0.0
     else:
