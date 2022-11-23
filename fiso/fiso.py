@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.ndimage as sn
+from scipy.ndimage import minimum_filter
 import time
 from itertools import islice
 import itertools
@@ -8,9 +8,8 @@ from collections import deque
 # printing extra diagnostic messages
 verbose = True
 # how to determine neighbors of boundary cells
-boundary_mode = 'wrap'
+boundary_mode = 'periodic'
 # whether diagonal cells are neighbors
-corner_bool = True
 time.prevtime = time.time()
 
 def timer(string=''):
@@ -34,11 +33,11 @@ def setup(data,cut):
         cutoff = np.searchsorted(dlist[order],cut)
 
     #precompute neighbor indices
-    pcn = precompute_neighbor(dshape,corner=corner_bool,mode=boundary_mode)
+    pcn = precompute_neighbor(dshape,corner=True,boundary_mode=boundary_mode)
     timer('precompute neighbor indices')
 
     #timer('init short')
-    minima_flat = find_minima_global(data).reshape(-1)
+    minima_flat = find_minima_global(data, boundary_mode).reshape(-1)
     #indices of the minima in original
     mfw = np.where(minima_flat)[0]
     #mfw is real index
@@ -51,17 +50,9 @@ def find_minima_no_bc(arr):
     Find minima using sn, don't allow any boundary cells to be minima
     Then add the boundaries
     '''
-    if corner_bool:
-        nhbd = sn.generate_binary_structure(len(arr.shape),3)
-    else:
-        nhbd = sn.generate_binary_structure(len(arr.shape),1)
-    # nhbd[len(arr.shape)*[slice(1,2)]] = False #exclude self
-    mode0 = 'constant'
     # initially doesnt allow any boundary cells to be minima
-    local_min = (arr == sn.filters.minimum_filter(arr,
-                                                  footprint=nhbd,
-                                                  mode=mode0,
-                                                  cval=-np.inf)).reshape(-1)
+    local_min = (arr == minimum_filter(arr, size=3, mode='constant',
+                                       cval=-np.inf)).reshape(-1)
     return local_min
 
 def find_minima_boundary_only(dlist,indices,bcn):
@@ -76,23 +67,29 @@ def find_minima_boundary_only(dlist,indices,bcn):
     return indices[dlist[indices] <= np.min(dlist[bcn],axis=1)]
 
 
-def find_minima_global(arr):
-    # find minima function depending on global args
-    if corner_bool:
-        nhbd = sn.generate_binary_structure(len(arr.shape),3)
-    else:
-        nhbd = sn.generate_binary_structure(len(arr.shape),1)
+def find_minima_global(arr, boundary_mode='periodic'):
+    """Find local minima of the input array
+
+    Parameters
+    ----------
+    arr : array_like
+        Input array
+    boundary_mode: str, optional
+        boundary mode determines how the input array is extended when the
+        stencil for finding the local minima overlaps a border.
+
+    Returns
+    -------
+    local_min : array_like
+        Bolean array that selects local minima
+    """
     if boundary_mode == 'clip':
         mode0 = 'reflect'
-    elif boundary_mode == 'wrap':
+    elif boundary_mode == 'periodic':
         mode0 = 'wrap'
     else:
-        mode0 = 'reflect'
-    # nhbd[len(arr.shape)*[slice(1,2)]] = False #exclude self, enforce strict local minimum
-    # local_min = (arr < sn.filters.minimum_filter(arr,
-    local_min = (arr == sn.filters.minimum_filter(arr,
-                                                 footprint=nhbd,
-                                                 mode=mode0))
+        raise Exception("unknown boundary mode")
+    local_min = (arr == minimum_filter(arr, size=3, mode=mode0))
     return local_min
 
 
@@ -188,7 +185,11 @@ def calc_itp(dim,corner,dtype):
     itp = np.array(itp,dtype=dtype)
     return itp
 
-def precompute_neighbor(shape,corner=True,mode='clip'):
+def precompute_neighbor(shape,corner=True,boundary_mode='clip'):
+    if boundary_mode=='periodic':
+        mode='wrap'
+    else:
+        mode='clip'
     nps = np.prod(shape)
     #save on memory when applicable
     if nps < 2**31:

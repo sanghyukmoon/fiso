@@ -1,7 +1,7 @@
 # code for identifying the edge cells of a core. 
 
 import numpy as np
-from fiso_periodic import shear_bcn, compute_displacement
+from .fiso_periodic import shear_bcn, compute_displacement
 
 def iso_dict_edge(iso_dict,bi,bpcn,displacements):
     """Find edge cells for all iso objects
