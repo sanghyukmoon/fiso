@@ -38,7 +38,7 @@ def setup(data,cut):
     timer('precompute neighbor indices')
 
     #timer('init short')
-    minima_flat = find_minima_flat(data)
+    minima_flat = find_minima_global(data).reshape(-1)
     #indices of the minima in original
     mfw = np.where(minima_flat)[0]
     #mfw is real index
@@ -95,16 +95,6 @@ def find_minima_global(arr):
                                                  mode=mode0))
     return local_min
 
-find_minima = find_minima_global
-
-def find_minima_flat(arr):
-    return find_minima(arr).reshape(-1)
-
-def find_minima_pcn(dlist,pcn):
-    return (dlist <= np.min(dlist[pcn],axis=1))
-    # go from flattened array and pcn to flat
-    # compare each cell to its neighbors according to pcn
-    # method is 10x slower than sn.minimum_filter but more general
 
 def boundary_pcn(coords,itp,shape,corner,mode='clip'):
     newcoords = coords[:,:,None] + np.transpose(itp)[:,None,:]
