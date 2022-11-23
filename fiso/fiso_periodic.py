@@ -12,13 +12,13 @@ cell_shear = 0
 # add shear to Y when X = X_min, X_max
 def setup(data,cut):
     dshape = data.shape
-    dlist = data.reshape(-1) #COPY
-    order = dlist.argsort() #an array of real index locations #COPY
+    data_flat = data.reshape(-1) #COPY
+    order = data_flat.argsort() #an array of real index locations #COPY
     fiso.timer('sort')
     cutoff = len(order) #number of cells to process
     #optional cutoff
     if type(cut) is float:
-        cutoff = np.searchsorted(dlist[order],cut)
+        cutoff = np.searchsorted(data_flat[order],cut)
 
     # precompute neighbor indices
     bi, bpcn, pcn = shear_pcn(dshape,cell_shear)
@@ -28,7 +28,7 @@ def setup(data,cut):
     # find minima with bc
     # combine
     mfw0 = np.where(fiso.find_minima_no_bc(data).reshape(-1))[0]
-    mfw1 = fiso.find_minima_boundary_only(dlist,bi,bpcn)
+    mfw1 = fiso.find_minima_boundary_only(data_flat,bi,bpcn)
     mfw = np.unique(np.sort(np.append(mfw0,mfw1)))
     return mfw,order,cutoff,pcn
 

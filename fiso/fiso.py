@@ -24,13 +24,13 @@ def setup(data,cut):
     timer()
     #prepare data
     dshape = data.shape
-    dlist = data.reshape(-1) #COPY
-    order = dlist.argsort() #an array of real index locations #COPY
+    data_flat = data.reshape(-1) #COPY
+    order = data_flat.argsort() #an array of real index locations #COPY
     timer('sort')
     cutoff = len(order) #number of cells to process
     #optional cutoff
     if type(cut) is float:
-        cutoff = np.searchsorted(dlist[order],cut)
+        cutoff = np.searchsorted(data_flat[order],cut)
 
     #precompute neighbor indices
     pcn = precompute_neighbor(dshape,corner=True,boundary_mode=boundary_mode)
@@ -55,16 +55,16 @@ def find_minima_no_bc(arr):
                                        cval=-np.inf)).reshape(-1)
     return local_min
 
-def find_minima_boundary_only(dlist,indices,bcn):
+def find_minima_boundary_only(data_flat,indices,bcn):
     '''
-    dlist: 1-d array data
+    data_flat: 1-d array data
     indices: 1-d array of boundary flattened indices
     bcn: boundary neighbors: num_indices x num_neighbors 2-d array of
     flattened indices
     output: indices that are local minima.
     '''
     indices = np.array(indices)
-    return indices[dlist[indices] <= np.min(dlist[bcn],axis=1)]
+    return indices[data_flat[indices] <= np.min(data_flat[bcn],axis=1)]
 
 
 def find_minima_global(arr, boundary_mode='periodic'):
