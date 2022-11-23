@@ -10,15 +10,12 @@ boundary_mode = ['wrap','wrap','wrap']
 corner_bool = True
 cell_shear = 0
 # add shear to Y when X = X_min, X_max
-def setup(data,cut):
+def setup(data):
     dshape = data.shape
     data_flat = data.flatten() #COPY
     order = data_flat.argsort() #an array of real index locations #COPY
     fiso.timer('sort')
     cutoff = len(order) #number of cells to process
-    #optional cutoff
-    if type(cut) is float:
-        cutoff = np.searchsorted(data_flat[order],cut)
 
     # precompute neighbor indices
     bi, bpcn, pcn = shear_pcn(dshape,cell_shear)

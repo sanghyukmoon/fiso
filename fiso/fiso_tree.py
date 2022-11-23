@@ -11,8 +11,8 @@ from ..fiso import timer, setup
 # printing extra diagnostic messages
 verbose = True
 
-def find(data,cut=''):
-    mfw,order,cutoff,pcn = setup(data,cut)
+def find(data):
+    mfw,order,cutoff,pcn = setup(data)
     #iso dict and labels setup
     iso_dict = {}
     labels = -np.ones(len(order),dtype=int) #indices are real index locations

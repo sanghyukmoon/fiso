@@ -20,7 +20,7 @@ def timer(string=''):
         if verbose: print(string,str(dt) + " seconds elapsed")
     return dt
 
-def setup(data,cut):
+def setup(data):
     timer()
     #prepare data
     dshape = data.shape
@@ -28,9 +28,6 @@ def setup(data,cut):
     order = data_flat.argsort() # sort phi in ascending order.
     timer('sort')
     cutoff = len(order) #number of cells to process
-    #optional cutoff
-    if type(cut) is float:
-        cutoff = np.searchsorted(data_flat[order],cut)
 
     #precompute neighbor indices
     pcn = precompute_neighbor(dshape,corner=True,boundary_mode=boundary_mode)
