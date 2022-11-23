@@ -3,7 +3,7 @@
 # eic_list: for keeping track of the tree structure, the immediate children
 # of each member
 
-import numpy as n
+import numpy as np
 import scipy.ndimage as sn
 import time
 from itertools import islice
@@ -21,7 +21,7 @@ def find(data,cut=''):
     mfw,order,cutoff,pcn = setup(data,cut)
     #iso dict and labels setup
     iso_dict = {}
-    labels = -n.ones(len(order),dtype=int) #indices are real index locations
+    labels = -np.ones(len(order),dtype=int) #indices are real index locations
     #inside loop, labels are accessed by labels[order[i]]
     for mini in mfw:
         iso_dict[mini] = deque([mini])
@@ -164,7 +164,7 @@ def tree_subsume(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_
         else: # big enough
             cell_list[i] = iso_dict[parent]
         len_list[i] = lidp
-    largest_i = n.argmax(len_list)
+    largest_i = np.argmax(len_list)
     largest_parent = parents[largest_i]
     subsume_set.discard(largest_i)
     # add too small to largest

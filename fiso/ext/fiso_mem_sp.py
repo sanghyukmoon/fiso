@@ -6,7 +6,7 @@
 
 from fiso import fiso
 import fiso.boundary.shear_periodic as boundary
-import numpy as n
+import numpy as np
 
 cell_shear = 0
 # add shear to Y when X = X_min, X_max
@@ -30,7 +30,7 @@ def setup(data,cut):
     cutoff = len(order) #number of cells to process
     #optional cutoff
     if type(cut) is float:
-        cutoff = n.searchsorted(dlist[order],cut)
+        cutoff = np.searchsorted(dlist[order],cut)
 
     # precompute neighbor indices
     bi, bpcn, pcn = boundary.make_pcn_mem(dshape,cell_shear)
@@ -39,9 +39,9 @@ def setup(data,cut):
     # find minima without bc
     # find minima with bc
     # combine
-    mfw0 = n.where(fiso.find_minima_no_bc(data).reshape(-1))[0]
+    mfw0 = np.where(fiso.find_minima_no_bc(data).reshape(-1))[0]
     mfw1 = fiso.find_minima_boundary_only(dlist,bi,bpcn)
-    mfw = n.unique(n.sort(n.append(mfw0,mfw1)))
+    mfw = np.unique(np.sort(np.append(mfw0,mfw1)))
     return mfw,order,cutoff,pcn
 
 fiso.setup = setup

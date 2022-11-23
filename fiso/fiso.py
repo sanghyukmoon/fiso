@@ -1,4 +1,4 @@
-import numpy as n
+import numpy as np
 import scipy.ndimage as sn
 import time
 from itertools import islice
@@ -31,7 +31,7 @@ def setup(data,cut):
     cutoff = len(order) #number of cells to process
     #optional cutoff
     if type(cut) is float:
-        cutoff = n.searchsorted(dlist[order],cut)
+        cutoff = np.searchsorted(dlist[order],cut)
 
     #precompute neighbor indices
     pcn = precompute_neighbor(dshape,corner=corner_bool,mode=boundary_mode)
@@ -40,7 +40,7 @@ def setup(data,cut):
     #timer('init short')
     minima_flat = find_minima_flat(data)
     #indices of the minima in original
-    mfw = n.where(minima_flat)[0]
+    mfw = np.where(minima_flat)[0]
     #mfw is real index
     if verbose: print(len(mfw),'minima')
     return mfw,order,cutoff,pcn
@@ -52,7 +52,7 @@ def find(data,cut=''):
     mfw,order,cutoff,pcn = setup(data,cut)
     #iso dict and labels setup
     iso_dict = {}
-    labels = -n.ones(len(order),dtype=int) #indices are real index locations
+    labels = -np.ones(len(order),dtype=int) #indices are real index locations
     #inside loop, labels are accessed by labels[order[i]]
     for mini in mfw:
         iso_dict[mini] = deque([mini])
@@ -76,7 +76,7 @@ def find(data,cut=''):
         nls0.discard(-1)
         nls0.discard(-2)
         nls0 = list(nls0)
-        # nls = n.unique(labels[nli]) #this is much slower
+        # nls = np.unique(labels[nli]) #this is much slower
         # nnc = (nls >= 0).sum() #this is 2x slower
         nnc = len(nls0)
         # number of neighbors in isos
@@ -144,7 +144,7 @@ def find_minima_no_bc(arr):
     local_min = (arr == sn.filters.minimum_filter(arr,
                                                   footprint=nhbd,
                                                   mode=mode0,
-                                                  cval=-n.inf)).reshape(-1)
+                                                  cval=-np.inf)).reshape(-1)
     return local_min
 
 def find_minima_boundary_only(dlist,indices,bcn):
@@ -155,8 +155,8 @@ def find_minima_boundary_only(dlist,indices,bcn):
     flattened indices
     output: indices that are local minima.
     '''
-    indices = n.array(indices)
-    return indices[dlist[indices] <= n.min(dlist[bcn],axis=1)]
+    indices = np.array(indices)
+    return indices[dlist[indices] <= np.min(dlist[bcn],axis=1)]
 
 
 def find_minima_global(arr):
@@ -184,19 +184,19 @@ def find_minima_flat(arr):
     return find_minima(arr).reshape(-1)
 
 def find_minima_pcn(dlist,pcn):
-    return (dlist <= n.min(dlist[pcn],axis=1))
+    return (dlist <= np.min(dlist[pcn],axis=1))
     # go from flattened array and pcn to flat
     # compare each cell to its neighbors according to pcn
     # method is 10x slower than sn.minimum_filter but more general
 
 def boundary_pcn(coords,itp,shape,corner,mode='clip'):
-    newcoords = coords[:,:,None] + n.transpose(itp)[:,None,:]
-    output = n.ravel_multi_index(newcoords,shape,mode=mode)
+    newcoords = coords[:,:,None] + np.transpose(itp)[:,None,:]
+    output = np.ravel_multi_index(newcoords,shape,mode=mode)
     return output
     # start with coords of shape dim,num_coords
     # for each num_coords, add one of the many itp
     # itp has shape num_neighbors,dim
-    # n.transpose(itp)
+    # np.transpose(itp)
     # dim, num_neighbors
     # want something of shape dim,num_coords,num_neighbors
     # num_coords, num_neighbors
@@ -213,7 +213,7 @@ def gbi_axis(shape,dtype,axis):
     #dni is the coords for dimension "i"
     dni = dim*[None]
     for i in idx:
-        dni[i] = n.arange(shape[i],dtype=dtype)
+        dni[i] = np.arange(shape[i],dtype=dtype)
     #for boundary dimensions i set indices j != i, setting index i to be
     #0 or end
 
@@ -221,19 +221,19 @@ def gbi_axis(shape,dtype,axis):
     i = axis
     shapei = shape[:] #copy shape
     shapei[i] = 1     #set dimension i to 1 (flat boundary)
-    nzs = n.zeros(shapei,dtype=dtype) #initialize boundary to 0
+    nzs = np.zeros(shapei,dtype=dtype) #initialize boundary to 0
     for j in idx:
         if j == i:
             continue
-        #make coord j using the n.arange (dni) with nzs of desired shape
+        #make coord j using the np.arange (dni) with nzs of desired shape
         selj = basel[:]
         selj[j] = slice(None)
         #slicing on index j makes dni[j] vary on index j and copy on other dimensions with desired shape nzs
         ndnis[j] = dni[j][tuple(selj)] + nzs
     ndnis[i] = 0
-    face0 = list(n.ravel_multi_index(ndnis,shape).reshape(-1))
+    face0 = list(np.ravel_multi_index(ndnis,shape).reshape(-1))
     ndnis[i] = shape[i]-1
-    face1 = list(n.ravel_multi_index(ndnis,shape).reshape(-1))
+    face1 = list(np.ravel_multi_index(ndnis,shape).reshape(-1))
     return face0,face1
 
 def gbi(shape,dtype):
@@ -246,7 +246,7 @@ def gbi(shape,dtype):
     #dni is the coords for dimension "i"
     dni = ls*[None]
     for i in idx:
-        dni[i] = n.arange(shape[i],dtype=dtype)
+        dni[i] = np.arange(shape[i],dtype=dtype)
 
     #for boundary dimensions i set indices j != i, setting index i to be
     #0 or end
@@ -255,19 +255,19 @@ def gbi(shape,dtype):
         ndnis = ls*[None]
         shapei = shape[:] #copy shape
         shapei[i] = 1     #set dimension i to 1 (flat boundary)
-        nzs = n.zeros(shapei,dtype=dtype) #initialize boundary to 0
+        nzs = np.zeros(shapei,dtype=dtype) #initialize boundary to 0
         for j in idx:
             if j == i:
                 continue
-                #make coord j using the n.arange (dni) with nzs of desired shape
+                #make coord j using the np.arange (dni) with nzs of desired shape
             selj = basel[:]
             selj[j] = slice(None)
             #slicing on index j makes dni[j] vary on index j and copy on other dimensions with desired shape nzs
             ndnis[j] = dni[j][tuple(selj)] + nzs
         ndnis[i] = 0
-        bi += list(n.ravel_multi_index(ndnis,shape).reshape(-1))
+        bi += list(np.ravel_multi_index(ndnis,shape).reshape(-1))
         ndnis[i] = shape[i]-1
-        bi += list(n.ravel_multi_index(ndnis,shape).reshape(-1))
+        bi += list(np.ravel_multi_index(ndnis,shape).reshape(-1))
     return bi
 
 def calc_itp(dim,corner,dtype):
@@ -278,41 +278,41 @@ def calc_itp(dim,corner,dtype):
         itp.remove((0,)*dim)
     else:
         itp = [i for i in itp if i.count(0) == 2]
-    itp = n.array(itp,dtype=dtype)
+    itp = np.array(itp,dtype=dtype)
     return itp
 
 def compute_displacement(shape,corner):
-    nps = n.prod(shape)
+    nps = np.prod(shape)
     #save on memory when applicable
     if nps < 2**31:
-        dtype = n.int32
+        dtype = np.int32
     else:
-        dtype = n.int64
+        dtype = np.int64
     dim = len(shape)
     itp = calc_itp(dim,corner,dtype)
     ishape = shape[::-1]
-    factor = n.cumprod(n.append([1],shape[::-1]))[:-1][::-1]
+    factor = np.cumprod(np.append([1],shape[::-1]))[:-1][::-1]
     factor = factor.astype(dtype)
     displacements = (itp*factor).sum(axis=1)
     return displacements
 
 def precompute_neighbor(shape,corner=True,mode='clip'):
-    nps = n.prod(shape)
+    nps = np.prod(shape)
     #save on memory when applicable
     if nps < 2**31:
-        dtype = n.int32
+        dtype = np.int32
     else:
-        dtype = n.int64
+        dtype = np.int64
     #set up array of cartesian displacements (itp)
     dim = len(shape)
     itp = calc_itp(dim,corner,dtype)
     #set up displacements in index space (treat n-d array as 1-d list)
     ishape = shape[::-1]
-    factor = n.cumprod(n.append([1],shape[::-1]))[:-1][::-1]
+    factor = np.cumprod(np.append([1],shape[::-1]))[:-1][::-1]
     factor = factor.astype(dtype)
     displacements = (itp*factor).sum(axis=1)
     #displacements is num_neighbors 1-d array
-    indices = n.arange(nps,dtype=dtype)[:,None]
+    indices = np.arange(nps,dtype=dtype)[:,None]
     #indices is 1-d array, 1 for each cell
     pcn = indices + displacements[None]
     #pcn is 2-d array using :,None to combine
@@ -326,7 +326,7 @@ def precompute_neighbor(shape,corner=True,mode='clip'):
 def boundary_i_bcn(shape,dtype,itp,corner,mode):
     # returns boundary indices and boundary's neighbor indices.
     boundary_indices = gbi(shape,dtype)
-    boundary_coords = n.array(n.unravel_index(boundary_indices,shape),
+    boundary_coords = np.array(np.unravel_index(boundary_indices,shape),
                               dtype=dtype)
     bpcn = boundary_pcn(boundary_coords,itp,shape,corner,mode=mode).astype(dtype)
     return boundary_indices,bpcn
@@ -337,7 +337,7 @@ def collide(active_isos,nls0):
             active_isos.remove(nlsi)
 
 def subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos):
-    smaller = n.argmin([l0,l1])
+    smaller = np.argmin([l0,l1])
     larger = 1-smaller
     #add smaller iso cells to larger dict
     iso_dict[nls0[larger]] += iso_dict[nls0[smaller]]
@@ -353,12 +353,12 @@ def subsume(l0,l1,orderi,nls0,iso_dict,labels,active_isos):
 def setup_mem(data,corner=corner_bool):
     shape = data.shape
     dlist = data.reshape(-1)
-    nps = n.prod(shape)
+    nps = np.prod(shape)
     #save on memory when applicable
     if nps < 2**31:
-        dtype = n.int32
+        dtype = np.int32
     else:
-        dtype = n.int64
+        dtype = np.int64
     #set up array of cartesian displacements (itp)
     dim = len(shape)
     itp = calc_itp(dim,corner,dtype)
@@ -368,7 +368,7 @@ def setup_mem(data,corner=corner_bool):
         def __getitem__(self,index):
             return self.get(index,index+displacements)
     pcn = pcnDict(zip(bi,bpcn))
-    mfw0 = n.where(find_minima_no_bc(data).reshape(-1))[0]
+    mfw0 = np.where(find_minima_no_bc(data).reshape(-1))[0]
     mfw1 = find_minima_boundary_only(dlist,bi,bpcn)
-    mfw = n.unique(n.sort(n.append(mfw0,mfw1))) 
+    mfw = np.unique(np.sort(np.append(mfw0,mfw1)))
     return pcn,mfw,bi,bpcn,displacements
