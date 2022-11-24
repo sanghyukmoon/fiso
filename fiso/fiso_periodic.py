@@ -43,7 +43,7 @@ def shear_bcn(shape,cell_shear):
     # calculate the coords of those indices
     bc0 = np.array(np.unravel_index(face0,shape),dtype=dtype)
     bc1 = np.array(np.unravel_index(face1,shape),dtype=dtype)
-    itp = fiso.calc_itp(3,corner_bool,dtype)
+    itp = fiso.get_offsets(3,corner_bool)
     titp = np.transpose(itp)[:,None,:]
     # get all neighboring coordinates
     nc0 = bc0[:,:,None] + titp
@@ -95,7 +95,7 @@ def compute_displacement(shape,corner):
     else:
         dtype = np.int64
     dim = len(shape)
-    itp = fiso.calc_itp(dim,corner,dtype)
+    itp = fiso.get_offsets(dim,corner)
     ishape = shape[::-1]
     factor = np.cumprod(np.append([1],shape[::-1]))[:-1][::-1]
     factor = factor.astype(dtype)

@@ -206,7 +206,7 @@ def get_offsets(dim, corner=True):
         offsets.remove((0,)*dim)
     else:
         offsets = [i for i in offsets if i.count(0) == 2]
-    offsets = np.array(offsets, dtype=np.int32))
+    offsets = np.array(offsets, dtype=np.int32)
     return offsets
 
 def precompute_neighbor(shape,corner=True,boundary_flag='periodic'):
@@ -237,7 +237,7 @@ def precompute_neighbor(shape,corner=True,boundary_flag='periodic'):
         dtype = np.int64
     # Set up offset array
     dim = len(shape)
-    offsets = get_offsets(dim, corner, dtype)
+    offsets = get_offsets(dim, corner)
     # Set up displacements in index space (treat n-d array as 1-d list)
     # factor = (NxNy, Nx, 1)
     factor = np.cumprod(np.append([1],shape[::-1]))[:-1][::-1]

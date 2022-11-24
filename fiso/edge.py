@@ -3,25 +3,6 @@
 import numpy as np
 from .fiso_periodic import shear_bcn, compute_displacement
 
-def iso_dict_edge(iso_dict,bi,bpcn,displacements):
-    """Find edge cells for all iso objects
-
-    Arguments
-    ---------
-    iso_dict: dictionary containing fiso objects
-    bi: boundary index
-    bpcn: boundary precomputed neighbors
-    displacements:
-
-    Return
-    ------
-    out_dict: dictionary containing edge cells for each fiso objects
-    """
-    out_dict = {}
-    for iso in iso_dict.keys():
-        out_dict[iso] = iso_edge(iso_dict[iso],shape,bi,bpcn,displacements)
-    return out_dict
-
 def iso_edge(iso,bi,bpcn,displacements):
     """Do XXX
 
