@@ -1,9 +1,6 @@
 import numpy as np
 from scipy.ndimage import minimum_filter
 import time
-from itertools import islice
-import itertools
-from collections import deque
 from .edge import precompute_neighbor
 
 # printing extra diagnostic messages

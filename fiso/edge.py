@@ -1,3 +1,4 @@
+from itertools import product
 import numpy as np
 
 def get_edge_cells(cells, pcn):
@@ -102,7 +103,7 @@ def _get_offsets(dim, corner=True):
         ...
     """
     offs = [-1,0,1]
-    offsets = list(itertools.product(offs,repeat=dim))
+    offsets = list(product(offs,repeat=dim))
     if corner:
         offsets.remove((0,)*dim)
     else:

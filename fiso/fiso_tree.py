@@ -3,9 +3,9 @@
 # eic_list: for keeping track of the tree structure, the immediate children
 # of each member
 
-import numpy as np
-from itertools import islice
 from collections import deque
+from itertools import islice
+import numpy as np
 from .fiso import timer, setup
 
 # printing extra diagnostic messages
