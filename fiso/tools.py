@@ -1,39 +1,36 @@
-# Tools for working with iso_dicts
 import numpy as np
 import xarray as xr
 
-def filter_dict(array,iso_dict):
-    # keep only values that are in iso_dict
-    index = []
-    for value in iso_dict.values():
-        index += list(value)
-    flat = array.flatten()
-    output = np.full(len(flat), np.nan)
-    output[index] = 1.0*flat[index]
-    return output.reshape(array.shape)
-
-def filter_var(var, iso_dict=None, iso=None):
+def filter_var(var, iso_dict=None, cells=None):
     """Set var = 0 outside the region defined by iso_dict
 
-    Arguments
-    ---------
-    var: xarray.DataArray
-        variable to be filtered (rho, phi, etc.)
-    iso_dict: FISO object dictionary
-    iso (optional): int
-        id (dict key) of the object to select
+    Parameters
+    ----------
+    var : xarray.DataArray
+        Variable to be filtered (rho, phi, etc.)
+    iso_dict : dict, optional
+        FISO object dictionary
+    cells : list or array-like, optional
+        Flattend indices
 
     Return
     ------
-    res: Filtered DataArray
+    out : Filtered DataArray
     """
-    if iso_dict==None:
+    if iso_dict is None and cells is None:
         return var
-    if iso:
-        iso_dict = dict(iso=iso_dict[iso])
-    res = filter_dict(var.data, iso_dict)
-    res = xr.DataArray(data=res, coords=var.coords, dims=var.dims)
-    return res
+    elif iso_dict is not None and cells is not None:
+        raise ValueError("Either give iso_dict or cells, but not both")
+    elif cells is None:
+        cells = []
+        for value in iso_dict.values():
+            cells += value
+    var_flat = var.data.flatten()
+    out = np.full(len(var_flat), np.nan)
+    out[cells] = var_flat[cells]
+    out = out.reshape(var.shape)
+    out = xr.DataArray(data=out, coords=var.coords, dims=var.dims)
+    return out
 
 def find_split(iso,eic_dict):
     # For a given iso and child data eic_dict, find the point where iso splits
