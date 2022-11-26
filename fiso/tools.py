@@ -25,7 +25,7 @@ def filter_var(var, iso_dict=None, cells=None):
     elif cells is None:
         cells = []
         for value in iso_dict.values():
-            cells += value
+            cells += list(value)
     var_flat = var.data.flatten()
     out = np.full(len(var_flat), np.nan)
     out[cells] = var_flat[cells]
