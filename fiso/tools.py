@@ -72,6 +72,182 @@ def calc_leaf(iso_dict,iso_list,eic_list):
                     leaf_dict[split] += iso_dict[subiso]
     return leaf_dict
 
+def get_energies(dat, cells, mode, pcn=None):
+    """Calculate cumulative energies for all levels
+
+    Arguments
+    ---------
+    dat : xr.Dataset
+        input dataset containing density, velocity, pressure, and potential
+    cells : list or array-like, optional
+        Flattend indices
+    mode : str
+        Definition of the boundness. Options are:
+        'HBR', 'HBR+1', 'HBR-1', or 'virial'
+    pcn : array_like
+        precomputed neighbors.
+
+    Return
+    ------
+    energies : dict
+        Integrated energies and effective radius at each level
+    """
+    # Get hydro variables for a selected HPR
+    cells = np.array(cells)
+    dat = dat.transpose('z','y','x')
+    dat1d = dict(cells = cells,
+                 x = np.broadcast_to(dat.x.data,dat.dens.shape
+                     ).flatten()[cells],
+                 y = np.broadcast_to(dat.y.data, dat.dens.shape
+                     ).transpose(1,2,0).flatten()[cells],
+                 z = np.broadcast_to(dat.z.data, dat.dens.shape
+                     ).transpose(2,0,1).flatten()[cells],
+                 rho = dat.dens.data.flatten()[cells],
+                 vx = dat.vel1.data.flatten()[cells],
+                 vy = dat.vel2.data.flatten()[cells],
+                 vz = dat.vel3.data.flatten()[cells],
+                 prs = dat.prs.data.flatten()[cells],
+                 phi = dat.phi.data.flatten()[cells])
+    # Assume uniform grid
+    dx = (dat.x[1]-dat.x[0]).data[()]
+    dy = (dat.y[1]-dat.y[0]).data[()]
+    dz = (dat.z[1]-dat.z[0]).data[()]
+    dV = dx*dy*dz
+    gm1 = (5./3. - 1)
+
+    # Sort variables in ascending order of potential
+    order = dat1d['phi'].argsort()
+    dat1d = {key:value[order] for key, value in dat1d.items()}
+    cells = dat1d['cells']
+
+    # Gravitational potential at the HPR boundary
+    phi0 = dat1d['phi'][-1]
+
+    # Calculate the center of momentum frame
+    # note: dV factor is omitted
+    M = (dat1d['rho']).cumsum()
+    vx0 = (dat1d['rho']*dat1d['vx']).cumsum() / M
+    vy0 = (dat1d['rho']*dat1d['vy']).cumsum() / M
+    vz0 = (dat1d['rho']*dat1d['vz']).cumsum() / M
+    # Potential minimum
+    phi_hpr = filter_var(dat.phi, cells=cells)
+    k0, j0, i0 = map(lambda x: x.data[()], phi_hpr.argmin(...).values())
+    z0 = dat.z.isel(z=k0).data[()]
+    y0 = dat.y.isel(y=j0).data[()]
+    x0 = dat.x.isel(x=i0).data[()]
+
+    # Kinetic energy
+    # \int 0.5 \rho | v - v_com |^2 dV
+    # = \int 0.5 \rho |v|^2 dV - (\int 0.5\rho dV) |v_com|^2
+    # Note that v_com depends on the limit of the volume integral.
+    Ekin = (0.5*dat1d['rho']*(dat1d['vx']**2
+                              + dat1d['vy']**2
+                              + dat1d['vz']**2)*dV).cumsum()
+    Ekin -= (0.5*dat1d['rho']*dV).cumsum()*(vx0**2 + vy0**2 + vz0**2)
+
+    # Thermal energy
+    Eth = (dat1d['prs']/gm1*dV).cumsum()
+
+    # Gravitational energy
+    if mode=='HBR' or mode=='HBR+1' or mode=='HBR-1':
+        Egrav = (dat1d['rho']*(dat1d['phi'] - phi0)*dV).cumsum()
+    elif mode=='virial':
+        dat1d['gx'] = -dat.phi.differentiate('x').data.flatten()[cells]
+        dat1d['gy'] = -dat.phi.differentiate('y').data.flatten()[cells]
+        dat1d['gz'] = -dat.phi.differentiate('z').data.flatten()[cells]
+        Egrav = (dat1d['rho']*((dat1d['x'] - x0)*dat1d['gx']
+                               + (dat1d['y'] - y0)*dat1d['gy']
+                               + (dat1d['z'] - z0)*dat1d['gz'])*dV).cumsum()
+    else:
+        raise ValueError("Unknown mode; select (HBR | HBR+1 | HBR-1 | virial)")
+
+    # Surface terms
+    if mode=='HBR':
+        Ekin0 = Eth0 = np.zeros(len(cells))
+    elif mode=='HBR+1' or mode=='HBR-1':
+        if pcn is None:
+            raise Exception("HBR+-1 calculation requires pcn")
+        edge = get_edge_cells(cells, pcn)
+        edg1d = dict(rho = dat.dens.data.flatten()[edge],
+                     vx = dat.vel1.data.flatten()[edge],
+                     vy = dat.vel2.data.flatten()[edge],
+                     vz = dat.vel3.data.flatten()[edge],
+                     prs = dat.prs.data.flatten()[edge])
+        # COM velocity of edge cells
+        M = (edg1d['rho']).sum()
+        vx0 = (edg1d['rho']*edg1d['vx']).sum() / M
+        vy0 = (edg1d['rho']*edg1d['vy']).sum() / M
+        vz0 = (edg1d['rho']*edg1d['vz']).sum() / M
+        # Mean surface energies
+        Ekin0 = (0.5*edg1d['rho']*((edg1d['vx'] - vx0)**2
+                                   + (edg1d['vy'] - vy0)**2
+                                   + (edg1d['vz'] - vz0)**2)).mean()
+        Eth0 = (edg1d['prs']/gm1).mean()
+        # Integrated surface energy to compare with volume energies.
+        # Note that the excess energy is given by \int (E - E_0) dV
+        Ekin0 = (Ekin0*np.ones(len(cells))*dV).cumsum()
+        Eth0 = (Eth0*np.ones(len(cells))*dV).cumsum()
+    elif mode=='virial':
+        divPx = ((dat.prs*(dat.x - x0)).differentiate('x')
+                 + (dat.prs*(dat.y - y0)).differentiate('y')
+                 + (dat.prs*(dat.z - z0)).differentiate('z')
+                 ).data.flatten()[cells]
+        Eth0 = ((1./3.)*divPx/gm1*dV).cumsum()
+        # Kinetic energy surface term
+        v0 = np.array([vx0, vy0, vz0])
+        # A1
+        rho_rdotv = dat.dens*((dat.x - x0)*dat.vel1
+                             + (dat.y - y0)*dat.vel2
+                             + (dat.z - z0)*dat.vel3)
+        A1 = ((rho_rdotv*dat.vel1).differentiate('x')
+              + (rho_rdotv*dat.vel2).differentiate('y')
+              + (rho_rdotv*dat.vel3).differentiate('z'))
+        A1 = (A1.data.flatten()[cells]*dV).cumsum()
+        # A2
+        grad_rho_r = np.empty((3,3), dtype=xr.DataArray)
+        for i, crd_i in enumerate(['x','y','z']):
+            for j, (crd_j, pos0_j) in enumerate(zip(['x','y','z'], [x0,y0,z0])):
+                grad_rho_r[i,j] = (dat.dens*(dat[crd_j] - pos0_j)
+                                   ).differentiate(crd_i)
+        A2 = np.empty((3,3,len(cells)))
+        for i, crd_i in enumerate(['x','y','z']):
+            for j, (crd_j, pos0_j) in enumerate(zip(['x','y','z'], [x0,y0,z0])):
+                A2[i,j,:] = (grad_rho_r[i,j].data.flatten()[cells]*dV).cumsum()
+        A2 = np.einsum('i..., ij..., j...', v0, A2, v0)
+        # A3
+        grad_rho_rdotv = np.empty(3, dtype=xr.DataArray)
+        for i, crd_i in enumerate(['x','y','z']):
+            grad_rho_rdotv[i] = rho_rdotv.differentiate(crd_i)
+        A3 = np.empty((3,len(cells)))
+        for i, crd_i in enumerate(['x','y','z']):
+            A3[i,:] = (grad_rho_rdotv[i].data.flatten()[cells]*dV).cumsum()
+        A3 = np.einsum('i...,i...', v0, A3)
+        # A4
+        div_rhorv = np.empty(3, dtype=xr.DataArray)
+        for i, (crd_i, pos0_i) in enumerate(zip(['x','y','z'], [x0,y0,z0])):
+            div_rhorv[i] = ((dat.dens*(dat[crd_i] - pos0_i)*dat.vel1).differentiate('x')
+                            + (dat.dens*(dat[crd_i] - pos0_i)*dat.vel2).differentiate('y')
+                            + (dat.dens*(dat[crd_i] - pos0_i)*dat.vel3).differentiate('z'))
+        A4 = np.empty((3,len(cells)))
+        for i, crd_i in enumerate(['x','y','z']):
+            A4[i,:] = (div_rhorv[i].data.flatten()[cells]*dV).cumsum()
+        A4 = np.einsum('i...,i...', v0, A4)
+        Ekin0 = 0.5*(A1 + A2 - A3 - A4)
+
+    Reff = ((np.ones(len(cells))*dV).cumsum() / (4.*np.pi/3.))**(1./3.)
+    if mode=='HBR':
+        Etot = Ekin + Eth + Egrav
+    elif mode=='HBR+1':
+        Etot = (Ekin - Ekin0) + (Eth - Eth0) + Egrav
+    elif mode=='HBR-1':
+        Etot = (Ekin + Ekin0) + (Eth + Eth0) + Egrav
+    elif mode=='virial':
+        Etot = 2*(Ekin - Ekin0) + 3*gm1*(Eth - Eth0) + Egrav
+
+    energies = dict(Reff=Reff, Ekin=Ekin, Eth=Eth, Ekin0=Ekin0, Eth0=Eth0,
+                    Egrav=Egrav, Etot=Etot)
+    return energies
+
 def get_Etot(dat, cells, level, mode, pcn=None, return_all=False, cumulative=True):
     """Calculate total energy below a given isocontour level for a given HPR
 
@@ -132,7 +308,7 @@ def get_Etot(dat, cells, level, mode, pcn=None, return_all=False, cumulative=Tru
 #     y0 = (dat1d['rho']*dat1d['y']).sum() / M
 #     z0 = (dat1d['rho']*dat1d['z']).sum() / M
     # Potential minimum
-    phi_hpr = filter_var(dat.phi, cells=cells)
+    phi_hpr = filter_var(dat.phi, cells=hpr_cells)
     k0, j0, i0 = map(lambda x: x.data[()], phi_hpr.argmin(...).values())
     z0 = dat.z.isel(z=k0).data[()]
     y0 = dat.y.isel(y=j0).data[()]
