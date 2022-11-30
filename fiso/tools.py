@@ -381,8 +381,7 @@ def get_Etot(dat, cells, level, mode, pcn=None, return_all=False, cumulative=Tru
 
 def groupby_bins(dat, coord, edges):
     """Alternative to xr.groupby_bins, which is very slow
-    TODO: Improve performance by:
-      https://stackoverflow.com/questions/6163334/binning-data-in-python-with-scipy-numpy
+
     Arguments
     ---------
     dat: xarray.DataArray
@@ -398,10 +397,9 @@ def groupby_bins(dat, coord, edges):
         binned array
     """
     dat = dat.transpose('z','y','x')
-    res = np.empty(len(edges)-1)
-    for i in range(len(edges)-1):
-        mask = ((dat[coord] >= edges[i]) & (dat[coord] < edges[i+1])).data
-        res[i] = dat.data[mask].mean()
+    fc = dat[coord].data.flatten() # flattened coordinates
+    fd = dat.data.flatten() # flattened data
+    res = np.histogram(fc, edges, weights=fd)[0] / np.histogram(fc, edges)[0]
     rc = 0.5*(edges[1:] + edges[:-1])
     res = xr.DataArray(data=res, coords=dict(r=rc), name=dat.name)
     return res
