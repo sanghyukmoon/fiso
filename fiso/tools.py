@@ -33,6 +33,17 @@ def filter_var(var, iso_dict=None, cells=None):
     out = xr.DataArray(data=out, coords=var.coords, dims=var.dims)
     return out
 
+def get_center(iso_id, phi):
+    """return coordinates at the potential minimum
+    Parameters
+    ----------
+    iso_id : int
+    dat : xarray.Dataset
+    """
+    center = phi.argmin(...)
+    x0, y0, z0 = [phi.isel(center).coords[dim].data[()] for dim in ['x','y','z']]
+    return x0, y0, z0
+
 def find_split(iso,eic_dict):
     # For a given iso and child data eic_dict, find the point where iso splits
     # eic_dict = dict(zip(iso_list,eic_list))
