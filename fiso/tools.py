@@ -389,28 +389,3 @@ def get_Etot(dat, cells, level, mode, pcn=None, return_all=False, cumulative=Tru
         return dict(Ekin=Ekin, Eth=Eth, Ekin0=Ekin0, Eth0=Eth0, Egrav=Egrav, Etot=Etot)
     else:
         return Etot
-
-def groupby_bins(dat, coord, edges):
-    """Alternative to xr.groupby_bins, which is very slow
-
-    Arguments
-    ---------
-    dat: xarray.DataArray
-        input dataArray
-    coord: str
-        coordinate name
-    edges: array-like
-        bin edges
-
-    Return
-    ------
-    res: xarray.DataArray
-        binned array
-    """
-    dat = dat.transpose('z','y','x')
-    fc = dat[coord].data.flatten() # flattened coordinates
-    fd = dat.data.flatten() # flattened data
-    res = np.histogram(fc, edges, weights=fd)[0] / np.histogram(fc, edges)[0]
-    rc = 0.5*(edges[1:] + edges[:-1])
-    res = xr.DataArray(data=res, coords=dict(r=rc), name=dat.name)
-    return res
