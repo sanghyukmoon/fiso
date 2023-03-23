@@ -13,10 +13,10 @@ verbose = True
 
 
 def find(data):
-    idx_minima,order,cutoff,pcn = setup(data)
+    idx_minima, order, cutoff, pcn = setup(data)
     #iso dict and labels setup
     iso_dict = {}
-    labels = -np.ones(len(order),dtype=int) #indices are real index locations
+    labels = -np.ones(len(order), dtype=int) #indices are real index locations
     #inside loop, labels are accessed by labels[order[i]]
     for mini in idx_minima:
         iso_dict[mini] = deque([mini])
@@ -54,10 +54,10 @@ def find(data):
         if (nnc > 0):
             if -2 in nls:
                 # a neighbor is previously explored but not isod (boundary), deactivate isos
-                _collide(active_isos,nls0)
+                _collide(active_isos, nls0)
                 min_active = 0
                 if len(active_isos) == min_active:
-                    next(islice(indices,cutoff-i-1,cutoff-i-1),None)
+                    next(islice(indices, cutoff-i-1, cutoff-i-1), None)
                 continue
             if (nnc == 1):
                 # only 1 neighbor, inherit
@@ -68,33 +68,36 @@ def find(data):
                     # inherit from neighbor, only 1 is positive/max
                 continue
             # There are 2 or more neighbors to deal with
-            _merge(active_isos,nls0,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list,labels)
+            _merge(active_isos, nls0, orderi, iso_dict, child_dict,
+                   parent_dict, iso_list, eic_list, labels)
             if verbose:
                 print(i,' of ',cutoff,' cells ',
                       len(active_isos),' minima')
             if len(active_isos) == min_active:
-                next(islice(indices,cutoff-i-1,cutoff-i-1),None)
+                next(islice(indices, cutoff-i-1, cutoff-i-1), None)
                 # skip up to next iso or end
         else:
             # no lesser neighbors
             if orderi in active_isos:
                 labels[orderi] = orderi
     dt = timer('loop finished for ' + str(cutoff) + ' items')
-    if verbose: print(str(dt/i) + ' per cell')
-    if verbose: print(str(dt/cutoff) + ' per total cell')
-    return iso_dict,labels,iso_list,eic_list
+    if verbose:
+        print(str(dt/i) + ' per cell')
+    if verbose:
+        print(str(dt/cutoff) + ' per total cell')
+    return iso_dict, labels, iso_list, eic_list
 
 
-def calc_leaf(iso_dict,iso_list,eic_list):
+def calc_leaf(iso_dict, iso_list, eic_list):
     leaf_dict = {}
-    eic_dict = dict(zip(iso_list,eic_list))
+    eic_dict = dict(zip(iso_list, eic_list))
 
     # fsd = find-split-dict, for each split list isos that it owns
     fsd = {}
     for iso in iso_list:
         if iso not in iso_dict:
             continue
-        split = _find_split(iso,eic_dict)
+        split = _find_split(iso, eic_dict)
         if split in fsd:
             fsd[split].append(iso)
         else:
@@ -112,7 +115,7 @@ def calc_leaf(iso_dict,iso_list,eic_list):
     return leaf_dict
 
 
-def _find_split(iso,eic_dict):
+def _find_split(iso, eic_dict):
     # For a given iso and child data eic_dict, find the point where iso splits
     # eic_dict = dict(zip(iso_list,eic_list))
     eics = eic_dict[iso]
@@ -120,19 +123,20 @@ def _find_split(iso,eic_dict):
 
     # If only 1 child, recurse
     if le == 1:
-        return _find_split(eics[0],eic_dict)
+        return _find_split(eics[0], eic_dict)
     # 0 child leaf node, or multiple children, return self
     else:
         return iso
 
 
-def _collide(active_isos,nls0,*args):
+def _collide(active_isos, nls0,*args):
     for nlsi in nls0:
         if nlsi in active_isos:
             active_isos.discard(nlsi)
 
 
-def _merge(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list,labels):
+def _merge(active_isos, parents, orderi, iso_dict, child_dict, parent_dict,
+           iso_list, eic_list, labels):
     # merge removes deactivated parents
     # subsume removes deactivated parents
     # hence, inactive parents must have come from collide
@@ -140,9 +144,10 @@ def _merge(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,e
     # if any inactive parents, collide
     # if all parents are active, first subsume smallest isos. 
     if set(parents) <= active_isos:
-        _tree_subsume(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list,labels)
+        _tree_subsume(active_isos, parents, orderi, iso_dict, child_dict,
+                      parent_dict, iso_list, eic_list, labels)
     else:
-        _collide(active_isos,parents)
+        _collide(active_isos, parents)
         return 
     eic = list(set(parents) & active_isos)
     # eic = list(parents)
@@ -168,9 +173,10 @@ def _merge(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,e
         active_isos.discard(iso)
     
 
-def _tree_subsume(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso_list,eic_list,labels):
+def _tree_subsume(active_isos, parents, orderi, iso_dict, child_dict,
+                  parent_dict, iso_list, eic_list, labels):
     min_cells = 27
-    eic_dict = dict(zip(iso_list,eic_list))
+    eic_dict = dict(zip(iso_list, eic_list))
     subsume_set = set()
     len_list = [None] * len(parents)
     cell_list = [None] * len(parents)
@@ -179,7 +185,7 @@ def _tree_subsume(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso
         lidp = len(iso_dict[parent])
         if lidp < min_cells:
             # too small, try making bigger
-            cell_list[i] = _recursive_members(iso_dict,eic_dict,parent)
+            cell_list[i] = _recursive_members(iso_dict, eic_dict, parent)
             lidp = len(cell_list[i])
             if lidp < min_cells:
                 # still too small 
@@ -203,10 +209,10 @@ def _tree_subsume(active_isos,parents,orderi,iso_dict,child_dict,parent_dict,iso
         # and be previously subsumed
     
 
-def _recursive_members(iso_dict,eic_dict,iso):
+def _recursive_members(iso_dict, eic_dict, iso):
     # get all cells of iso
     output = []
     output += iso_dict[iso]
     for child_iso in eic_dict[iso]:
-        output += _recursive_members(iso_dict,eic_dict,child_iso)
+        output += _recursive_members(iso_dict, eic_dict, child_iso)
     return output
