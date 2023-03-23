@@ -38,37 +38,41 @@ def find(data, verbose=True):
     timer()
     for i in indices:
         cell = cells_ordered[i] # loop through the cells, in the order of increasing potential
-        ngblabels = set(labels[
+        ngb_labels = set(labels[
             pcn[cell] # labels of neighbors of this cell. Note that potential minima are
         ])              # already labeled with their flattened index.
         # a neighbor is previously explored but not isod (boundary), deactivate isos
         # TODO(SMOON) better name? what collide does?
-        flag_deactivate = True if -2 in ngblabels else False
-        ngblabels.discard(-1) # remove unprocessed cells (nor potential minima, nor XXX)
-        ngblabels.discard(-2) # what is -2?
-        ngbparents = list(set(
-            [parent_dict[lbl] for lbl in ngblabels]
-        )) # now, ngbparents is a list of parents of my neighbor
-        nnc = len(ngbparents) # number of all my neighbor's parents
+        flag_deactivate = True if -2 in ngb_labels else False
+        # ngb : lesser neighbors
+        ngb_labels.discard(-1) # remove unprocessed cells (nor potential minima, nor XXX)
+        ngb_labels.discard(-2) # what is -2?
+        ngb_parents = list(set(
+            [parent_dict[lbl] for lbl in ngb_labels]
+        )) # now, ngb_parents is a list of parents of my lesser neighbor
+        num_ngb_parents = len(ngb_parents) # number of all my neighbor's parents
         # Mark this cell as already explored.
         labels[cell] = -2 # I am now processed. TODO(SMOON) Why -2 instead of -1?
-        if (nnc > 0): # If there are at least one neighboring cell which is already belong to a structure,
-            if flag_deactivate:
-                # a neighbor is previously explored but not isod (boundary), deactivate isos
-                _collide(active_isos, ngbparents)
-                min_active = 0
-                if len(active_isos) == min_active:
-                    next(islice(indices, cutoff-i-1, cutoff-i-1), None)
-                continue
-            if (nnc == 1):
-                # only 1 neighbor, inherit
-                parent = ngbparents[0] # this is a flattend index of the parenting cell of neighbor
-                if parent in active_isos:
-                    labels[cell] = parent # label me as belong to this parent
-                    iso_dict[parent].append(cell) # Add me to parent's child list
-                continue
+        if num_ngb_parents == 0:
+            # No neighboring parent TODO(SMOON) when this can happen except for the very beginning?
+            print("Cell i = {} have no lesser neighbors".format(i))
+            if cell in active_isos: # active_isos is a set of flattened indices of "active" isos
+                labels[cell] = cell # label this cell by its flattend index
+        elif flag_deactivate: # What is this?
+            # a neighbor is previously explored but not isod (boundary), deactivate isos
+            _collide(active_isos, ngb_parents)
+            min_active = 0
+            if len(active_isos) == min_active:
+                next(islice(indices, cutoff-i-1, cutoff-i-1), None)
+        elif num_ngb_parents == 1:
+            # only 1 neighbor, inherit
+            parent = ngb_parents[0] # this is a flattend index of the parenting cell of neighbor
+            if parent in active_isos:
+                labels[cell] = parent # label me as belong to this parent
+                iso_dict[parent].append(cell) # Add me to parent's child list
+        else:
             # There are 2 or more neighbors to deal with
-            _merge(active_isos, ngbparents, cell, iso_dict, child_dict,
+            _merge(active_isos, ngb_parents, cell, iso_dict, child_dict,
                    parent_dict, iso_list, eic_list, labels)
             if verbose:
 #                print(i,' of ',cutoff,' cells ',
@@ -76,14 +80,9 @@ def find(data, verbose=True):
                 print("Processing cell i = {} among {} cells: merge is triggered."\
                        " len(active_isos) = {}".format(i, cutoff, len(active_isos)))
             if len(active_isos) == min_active:
-                next(islice(indices, cutoff-i-1, cutoff-i-1), None)
                 # skip up to next iso or end
-        else:
-            # no lesser neighbors
-            print("Cell i = {} have no lesser neighbors".format(i))
-            if cell in active_isos: # active_isos is a set of flattened indices of "active" isos
-                labels[cell] = cell # label this cell by its flattend index
-                                    # TODO(SMOON) isn't this already done?
+                next(islice(indices, cutoff-i-1, cutoff-i-1), None)
+
     dt = timer('loop finished for ' + str(cutoff) + ' items')
     if verbose:
         print(str(dt/i) + ' per cell')
@@ -133,9 +132,9 @@ def _find_split(iso, eic_dict):
         return iso
 
 
-def _collide(active_isos, ngbparents, *args):
+def _collide(active_isos, ngb_parents, *args):
     # TODO(SMOON) add docstring
-    for parent in ngbparents:
+    for parent in ngb_parents:
         if parent in active_isos:
             active_isos.discard(parent)
 
