@@ -9,11 +9,8 @@ import numpy as np
 from .fiso import setup
 from .tools import timer
 
-# printing extra diagnostic messages
-verbose = True
 
-
-def find(data):
+def find(data, verbose=True):
     # TODO(SMOON) Use more meaningful function name; add docstring
     idx_minima, cells_ordered, cutoff, pcn = setup(data)
     #iso dict and labels setup
