@@ -37,6 +37,7 @@ def find(data):
     indices = iter(range(cutoff))
 
     min_active = 1
+    timer()
     for i in indices:
         orderi = order[i]
         nls = set(labels[
