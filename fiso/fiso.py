@@ -53,26 +53,3 @@ def find_minima_global(arr, boundary_flag='periodic'):
         raise Exception("unknown boundary mode")
     local_min = (arr == minimum_filter(arr, size=3, mode=mode))
     return local_min
-
-
-def find_minima_no_bc(arr):
-    '''
-    Find minima using sn, don't allow any boundary cells to be minima
-    Then add the boundaries
-    '''
-    # initially doesnt allow any boundary cells to be minima
-    local_min = (arr == minimum_filter(arr, size=3, mode='constant',
-                                       cval=-np.inf)).flatten()
-    return local_min
-
-
-def find_minima_boundary_only(data_flat,indices,bcn):
-    '''
-    data_flat: 1-d array data
-    indices: 1-d array of boundary flattened indices
-    bcn: boundary neighbors: num_indices x num_neighbors 2-d array of
-    flattened indices
-    output: indices that are local minima.
-    '''
-    indices = np.array(indices)
-    return indices[data_flat[indices] <= np.min(data_flat[bcn],axis=1)]
