@@ -2,6 +2,7 @@ import numpy as np
 from scipy.ndimage import minimum_filter
 import time
 from .edge import precompute_neighbor
+import itertools
 
 # printing extra diagnostic messages
 verbose = True

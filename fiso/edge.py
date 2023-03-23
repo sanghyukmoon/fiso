@@ -41,38 +41,34 @@ def precompute_neighbor(shape, corner=True, boundary_flag='periodic'):
 
     Returns
     -------
-    pcn : array_like
-        The shape of this array is (Ncells, N_neighbors), such that pcn[1][0] is
-        the flattened index of the (-1,-1,-1) neighbor of the (k,j,i) = (0,0,1)
-        cell, which is (k,j,i) = (-1, -1, 0) = (Nz-1, Ny-1, 0) for periodic BC.
-        See docstring of get_offsets for the ordering of neighbor directions.
+    pcn : pcnDict
+        This is a pseudo-array of the shape (Ncells, N_neighbors), such that
+        pcn[1][0] is the flattened index of the (-1,-1,-1) neighbor of the
+        (k,j,i) = (0,0,1) cell, which is (k,j,i) = (-1, -1, 0) = (Nz-1, Ny-1, 0)
+        for periodic BC. See docstring of get_offsets for the ordering of
+        neighbor directions.
+        The actual data is stored in memory only along the boundary points
+        (e.g., i=0, j=32, k=32 for 64^3 mesh), such that the dictionary
+        returns the value bpcn when given a key bi; otherwise, it computes
+        the neighbor indices on-the-fly, by index+displacements.
     """
+
+    # memory efficient version of pcn, by precomputing only the boundary,
+    # computing interior points on the fly.
     Ncells = np.prod(shape)
     # Save on memory when applicable
     if Ncells < 2**31:
         dtype = np.int32
     else:
         dtype = np.int64
-    # Set up offset array
-    dim = len(shape)
-    offsets = _get_offsets(dim, corner)
-    # Set up displacements in index space (treat n-d array as 1-d list)
-    # factor = (NxNy, Nx, 1)
-    factor = np.cumprod(np.append([1],shape[::-1]))[:-1][::-1]
-    factor = factor.astype(dtype)
-    displacements = (offsets*factor).sum(axis=1)
-    # Displacements is num_neighbors 1-d array
-    indices = np.arange(Ncells, dtype=dtype)[:,None]
-    # indices is 1-d array, 1 for each cell
-    pcn = indices + displacements[None]
-    # pcn is 2-d array using :,None to combine
-    # Apply boundary correction
-    bi,bpcn = _boundary_i_bcn(shape, dtype, offsets, corner, boundary_flag)
-    # pcn shape num_neighbors x cells
-    # bcn shape num_neighbors x cells
-    pcn[bi] = bpcn
+    offset = _get_offsets(len(shape), corner)
+    bi, bpcn = _boundary_i_bcn(shape, dtype, offset, corner, boundary_flag)
+    displacements = _compute_displacement(shape, corner)
+    class pcnDict(dict):
+        def __getitem__(self, index):
+            return self.get(index, index+displacements)
+    pcn = pcnDict(zip(bi, bpcn))
     return pcn
-
 
 def _get_offsets(dim, corner=True):
     """Compute 1-D flattened array offsets corresponding to neighbors
@@ -114,8 +110,8 @@ def _get_offsets(dim, corner=True):
 
 def _boundary_i_bcn(shape, dtype, offsets, corner, boundary_flag):
     # returns boundary indices and boundary's neighbor indices.
-    boundary_indices = _gbi(shape,dtype)
-    boundary_coords = np.array(np.unravel_index(boundary_indices,shape),
+    boundary_indices = _gbi(shape, dtype)
+    boundary_coords = np.array(np.unravel_index(boundary_indices, shape),
                               dtype=dtype)
     bpcn = _boundary_pcn(boundary_coords, offsets, shape, corner,
                         boundary_flag=boundary_flag).astype(dtype)
@@ -165,3 +161,18 @@ def _gbi(shape, dtype):
         ndnis[i] = shape[i]-1
         bi += list(np.ravel_multi_index(ndnis,shape).flatten())
     return bi
+
+def _compute_displacement(shape, corner):
+    nps = np.prod(shape)
+    #save on memory when applicable
+    if nps < 2**31:
+        dtype = np.int32
+    else:
+        dtype = np.int64
+    dim = len(shape)
+    offsets = _get_offsets(dim, corner)
+    ishape = shape[::-1]
+    factor = np.cumprod(np.append([1], shape[::-1]))[:-1][::-1]
+    factor = factor.astype(dtype)
+    displacements = (offsets*factor).sum(axis=1)
+    return displacements
