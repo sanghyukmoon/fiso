@@ -7,8 +7,10 @@ import itertools
 # how to determine neighbors of boundary cells
 boundary_flag = 'periodic'
 
+#TODO(SMOON) Rearrangment of modules is warranted.
 
 def setup(data, verbose=True):
+    # TODO(SMOON) use more meaningful function name
     timer()
     # Prepare data
     data_flat = data.flatten()

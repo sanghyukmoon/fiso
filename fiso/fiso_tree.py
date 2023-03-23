@@ -14,6 +14,7 @@ verbose = True
 
 
 def find(data):
+    # TODO(SMOON) Use more meaningful function name; add docstring
     idx_minima, order, cutoff, pcn = setup(data)
     #iso dict and labels setup
     iso_dict = {}
