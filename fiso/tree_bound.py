@@ -93,20 +93,3 @@ def bound_mass(data,cells,e0):
     else:
         index = threshold[-1]
         return cells[order][:index], cc_rho[index]
-
-def recursive_members(iso_dict,eic_dict,iso):
-    # get all cells of iso
-    output = []
-    output += iso_dict[iso]
-    for child_iso in eic_dict[iso]:
-        output += recursive_members(iso_dict,eic_dict,child_iso)
-    return output
-
-def recursive_child(iso_dict,eic_dict,iso):
-    # get all eic descendents of iso
-    output = []
-    # print(eic_dict[iso])
-    output += eic_dict[iso]
-    for child_iso in eic_dict[iso]:
-        output += recursive_child(iso_dict,eic_dict,child_iso)
-    return output
