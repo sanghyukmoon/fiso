@@ -41,33 +41,34 @@ def find(data, verbose=True):
         ngblabels = set(labels[
             pcn[cell] # labels of neighbors of this cell. Note that potential minima are
         ])              # already labeled with their flattened index.
-        nls0 = ngblabels.copy()
-        nls0.discard(-1) # remove unprocessed cells (nor potential minima, nor XXX)
-        nls0.discard(-2) # what is -2?
-        nls0 = list(set(
-            [parent_dict[lbl] for lbl in nls0]
-        )) # now, nls0 is a list of parents of my neighbor
-        nnc = len(nls0) # number of all my neighbor's parents
+        # a neighbor is previously explored but not isod (boundary), deactivate isos
+        # TODO(SMOON) better name? what collide does?
+        flag_deactivate = True if -2 in ngblabels else False
+        ngblabels.discard(-1) # remove unprocessed cells (nor potential minima, nor XXX)
+        ngblabels.discard(-2) # what is -2?
+        ngbparents = list(set(
+            [parent_dict[lbl] for lbl in ngblabels]
+        )) # now, ngbparents is a list of parents of my neighbor
+        nnc = len(ngbparents) # number of all my neighbor's parents
         # Mark this cell as already explored.
         labels[cell] = -2 # I am now processed. TODO(SMOON) Why -2 instead of -1?
         if (nnc > 0): # If there are at least one neighboring cell which is already belong to a structure,
-            if -2 in ngblabels:
+            if flag_deactivate:
                 # a neighbor is previously explored but not isod (boundary), deactivate isos
-                _collide(active_isos, nls0)
+                _collide(active_isos, ngbparents)
                 min_active = 0
                 if len(active_isos) == min_active:
                     next(islice(indices, cutoff-i-1, cutoff-i-1), None)
                 continue
             if (nnc == 1):
                 # only 1 neighbor, inherit
-                parent = nls0[0] # this is a flattend index of the parenting cell of neighbor
+                parent = ngbparents[0] # this is a flattend index of the parenting cell of neighbor
                 if parent in active_isos:
-                    labels[cell] = parent # label this cell as belong to this parent
-                    iso_dict[parent].append(cell)
-                    # inherit from neighbor, only 1 is positive/max
+                    labels[cell] = parent # label me as belong to this parent
+                    iso_dict[parent].append(cell) # Add me to parent's child list
                 continue
             # There are 2 or more neighbors to deal with
-            _merge(active_isos, nls0, cell, iso_dict, child_dict,
+            _merge(active_isos, ngbparents, cell, iso_dict, child_dict,
                    parent_dict, iso_list, eic_list, labels)
             if verbose:
                 print(i,' of ',cutoff,' cells ',
@@ -129,10 +130,11 @@ def _find_split(iso, eic_dict):
         return iso
 
 
-def _collide(active_isos, nls0,*args):
-    for nlsi in nls0:
-        if nlsi in active_isos:
-            active_isos.discard(nlsi)
+def _collide(active_isos, ngbparents, *args):
+    # TODO(SMOON) add docstring
+    for parent in ngbparents:
+        if parent in active_isos:
+            active_isos.discard(parent)
 
 
 def _merge(active_isos, parents, cell, iso_dict, child_dict, parent_dict,
