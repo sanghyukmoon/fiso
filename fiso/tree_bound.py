@@ -9,7 +9,6 @@ def compute(data, iso_dict, iso_list, eic_list):
     # Initialize
     len_iso = len(iso_list)
     hpr_dict = {}
-    bmass_dict = {}
     hbr_dict = {}
     eic_dict = dict(zip(iso_list, eic_list))
 
@@ -34,7 +33,7 @@ def compute(data, iso_dict, iso_list, eic_list):
 
         # 2. Calculate Bound Mass
 
-        hbr_dict[iso], bmass_dict[iso] = bound_mass(data, hpr_dict[iso], 0.0)
+        hbr_dict[iso] = bound_region(data, hpr_dict[iso], 0.0)
 
         # 3. Merge Logic
         split_iso = find_split(iso, eic_dict)
@@ -60,7 +59,7 @@ def compute(data, iso_dict, iso_list, eic_list):
     return hpr_dict, hbr_dict
 
 
-def bound_mass(data, cells, e0):
+def bound_region(data, cells, e0):
     # assume data is the following:
     cells = np.array(cells)
     rho, phi, pressure, bpressure, velx, vely, velz = data
@@ -91,7 +90,7 @@ def bound_mass(data, cells, e0):
                       ) - c_com
     threshold = np.where(c_tot < e0*np.arange(1, 1+len(c_tot)))[0]
     if len(threshold) < 1:
-        return cells[order][:0], 0.0
+        return cells[order][:0]
     else:
         index = threshold[-1]
-        return cells[order][:index], cc_rho[index]
+        return cells[order][:index]
