@@ -1,6 +1,6 @@
 # Compute bound mass in a hierarchical way
 import numpy as np
-from .tools import find_split
+from .fiso_tree import _find_split
 
 
 def compute(data, iso_dict, iso_list, eic_list):
@@ -38,7 +38,7 @@ def compute(data, iso_dict, iso_list, eic_list):
         hbr_dict[iso] = bound_region(data, hpr_dict[iso], 0.0)
 
         # 3. Merge Logic
-        split_iso = find_split(iso, eic_dict)
+        split_iso = _find_split(iso, eic_dict)
         if split_iso in hbr_dict[iso]:
             # this iso can replace its children
             # because its starting point was bound and it joins the children
