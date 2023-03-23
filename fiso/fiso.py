@@ -1,27 +1,14 @@
 import numpy as np
 from scipy.ndimage import minimum_filter
-import time
 from .edge import precompute_neighbor
+from .tools import timer
 import itertools
 
-# printing extra diagnostic messages
-verbose = True
 # how to determine neighbors of boundary cells
 boundary_flag = 'periodic'
-# whether diagonal cells are neighbors
-time.prevtime = time.time()
 
 
-def timer(string=''):
-    thistime = time.time()
-    dt = thistime - time.prevtime
-    time.prevtime = thistime
-    if len(string) > 0:
-        if verbose: print(string,str(dt) + " seconds elapsed")
-    return dt
-
-
-def setup(data):
+def setup(data, verbose=True):
     timer()
     # Prepare data
     data_flat = data.flatten()

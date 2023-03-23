@@ -6,7 +6,8 @@
 from collections import deque
 from itertools import islice
 import numpy as np
-from .fiso import timer, setup
+from .fiso import setup
+from .tools import timer
 
 # printing extra diagnostic messages
 verbose = True

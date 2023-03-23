@@ -1,6 +1,7 @@
 import numpy as np
 import xarray as xr
 from .edge import get_edge_cells
+import time
 
 
 def filter_var(var, iso_dict=None, cells=None):
@@ -360,3 +361,12 @@ def get_Etot(dat, cells, level, mode, pcn=None, return_all=False,
                     Etot=Etot)
     else:
         return Etot
+
+
+def timer(string='', verbose=True):
+    thistime = time.time()
+    dt = thistime - time.prevtime
+    time.prevtime = thistime
+    if len(string) > 0 and verbose:
+        print(string,str(dt) + " seconds elapsed")
+    return dt
