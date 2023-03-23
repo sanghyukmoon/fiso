@@ -46,12 +46,11 @@ def find(data, verbose=True):
         nls0.discard(-2) # what is -2?
         nls0 = list(set(
             [parent_dict[lbl] for lbl in nls0]
-        )) # now, nls0 is a list of flattened indices of active neighbors
-        nnc = len(nls0)
-        # number of neighbors in isos
-        # first note this cell has been explored
-        labels[cell] = -2
-        if (nnc > 0):
+        )) # now, nls0 is a list of parents of my neighbor
+        nnc = len(nls0) # number of all my neighbor's parents
+        # Mark this cell as already explored.
+        labels[cell] = -2 # I am now processed. TODO(SMOON) Why -2 instead of -1?
+        if (nnc > 0): # If there are at least one neighboring cell which is already belong to a structure,
             if -2 in ngblabels:
                 # a neighbor is previously explored but not isod (boundary), deactivate isos
                 _collide(active_isos, nls0)
@@ -61,10 +60,10 @@ def find(data, verbose=True):
                 continue
             if (nnc == 1):
                 # only 1 neighbor, inherit
-                inherit = nls0[0]
-                if inherit in active_isos:
-                    labels[cell] = inherit
-                    iso_dict[inherit].append(cell)
+                parent = nls0[0] # this is a flattend index of the parenting cell of neighbor
+                if parent in active_isos:
+                    labels[cell] = parent # label this cell as belong to this parent
+                    iso_dict[parent].append(cell)
                     # inherit from neighbor, only 1 is positive/max
                 continue
             # There are 2 or more neighbors to deal with
