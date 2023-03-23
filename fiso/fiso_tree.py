@@ -40,9 +40,9 @@ def find(data):
     min_active = 1
     timer()
     for i in indices:
-        fltidx = order[i] # loop through the cells, in the order of increasing potential
+        cell = order[i] # loop through the cells, in the order of increasing potential
         ngblabels = set(labels[
-            pcn[fltidx] # labels of neighbors of this cell. Note that potential minima are
+            pcn[cell] # labels of neighbors of this cell. Note that potential minima are
         ])              # already labeled with their flattened index.
         nls0 = ngblabels.copy()
         nls0.discard(-1) # remove unprocessed cells (nor potential minima, nor XXX)
@@ -53,7 +53,7 @@ def find(data):
         nnc = len(nls0)
         # number of neighbors in isos
         # first note this cell has been explored
-        labels[fltidx] = -2
+        labels[cell] = -2
         if (nnc > 0):
             if -2 in ngblabels:
                 # a neighbor is previously explored but not isod (boundary), deactivate isos
@@ -66,12 +66,12 @@ def find(data):
                 # only 1 neighbor, inherit
                 inherit = nls0[0]
                 if inherit in active_isos:
-                    labels[fltidx] = inherit
-                    iso_dict[inherit].append(fltidx)
+                    labels[cell] = inherit
+                    iso_dict[inherit].append(cell)
                     # inherit from neighbor, only 1 is positive/max
                 continue
             # There are 2 or more neighbors to deal with
-            _merge(active_isos, nls0, fltidx, iso_dict, child_dict,
+            _merge(active_isos, nls0, cell, iso_dict, child_dict,
                    parent_dict, iso_list, eic_list, labels)
             if verbose:
                 print(i,' of ',cutoff,' cells ',
@@ -81,9 +81,9 @@ def find(data):
                 # skip up to next iso or end
         else:
             # no lesser neighbors
-            if fltidx in active_isos: # active_isos is a set of flattened indices of "active" isos
-                labels[fltidx] = fltidx # order is a flattend indices of all cells, sorted
-                                        # in the order of increasing potential. fltidx = order[i].
+            if cell in active_isos: # active_isos is a set of flattened indices of "active" isos
+                labels[cell] = cell # order is a flattend indices of all cells, sorted
+                                        # in the order of increasing potential. cell = order[i].
     dt = timer('loop finished for ' + str(cutoff) + ' items')
     if verbose:
         print(str(dt/i) + ' per cell')
@@ -139,7 +139,7 @@ def _collide(active_isos, nls0,*args):
             active_isos.discard(nlsi)
 
 
-def _merge(active_isos, parents, fltidx, iso_dict, child_dict, parent_dict,
+def _merge(active_isos, parents, cell, iso_dict, child_dict, parent_dict,
            iso_list, eic_list, labels):
     # merge removes deactivated parents
     # subsume removes deactivated parents
@@ -148,7 +148,7 @@ def _merge(active_isos, parents, fltidx, iso_dict, child_dict, parent_dict,
     # if any inactive parents, collide
     # if all parents are active, first subsume smallest isos. 
     if set(parents) <= active_isos:
-        _tree_subsume(active_isos, parents, fltidx, iso_dict, child_dict,
+        _tree_subsume(active_isos, parents, cell, iso_dict, child_dict,
                       parent_dict, iso_list, eic_list, labels)
     else:
         _collide(active_isos, parents)
@@ -156,28 +156,28 @@ def _merge(active_isos, parents, fltidx, iso_dict, child_dict, parent_dict,
     eic = list(set(parents) & active_isos)
     # eic = list(parents)
     # start new iso, assign it to be its own child and parent
-    iso_dict[fltidx] = deque([fltidx])
-    labels[fltidx] = fltidx
-    child_dict[fltidx] = deque([fltidx])
-    parent_dict[fltidx] = fltidx
+    iso_dict[cell] = deque([cell])
+    labels[cell] = cell
+    child_dict[cell] = deque([cell])
+    parent_dict[cell] = cell
 
     # new parent iso is active
-    active_isos.add(fltidx)
-    iso_list.append(fltidx)
+    active_isos.add(cell)
+    iso_list.append(cell)
     eic_list.append(eic)
     # exclusive immediate children
     for iso in eic:
-        # new parent fltidx owns all children of all merging isos
-        # fltidx's children is children
-        child_dict[fltidx] += child_dict[iso]
-        # children's parent is fltidx.
+        # new parent cell owns all children of all merging isos
+        # cell's children is children
+        child_dict[cell] += child_dict[iso]
+        # children's parent is cell.
         for child in child_dict[iso]:
-            parent_dict[child] = fltidx
+            parent_dict[child] = cell
             # deactivate iso
         active_isos.discard(iso)
     
 
-def _tree_subsume(active_isos, parents, fltidx, iso_dict, child_dict,
+def _tree_subsume(active_isos, parents, cell, iso_dict, child_dict,
                   parent_dict, iso_list, eic_list, labels):
     min_cells = 27
     eic_dict = dict(zip(iso_list, eic_list))
