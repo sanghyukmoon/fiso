@@ -71,13 +71,16 @@ def find(data, verbose=True):
             _merge(active_isos, ngbparents, cell, iso_dict, child_dict,
                    parent_dict, iso_list, eic_list, labels)
             if verbose:
-                print(i,' of ',cutoff,' cells ',
-                      len(active_isos),' minima')
+#                print(i,' of ',cutoff,' cells ',
+#                      len(active_isos),' minima')
+                print("Processing cell i = {} among {} cells: merge is triggered."\
+                       " len(active_isos) = {}".format(i, cutoff, len(active_isos)))
             if len(active_isos) == min_active:
                 next(islice(indices, cutoff-i-1, cutoff-i-1), None)
                 # skip up to next iso or end
         else:
             # no lesser neighbors
+            print("Cell i = {} have no lesser neighbors".format(i))
             if cell in active_isos: # active_isos is a set of flattened indices of "active" isos
                 labels[cell] = cell # label this cell by its flattend index
                                     # TODO(SMOON) isn't this already done?
