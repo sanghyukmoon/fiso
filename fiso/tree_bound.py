@@ -2,15 +2,16 @@
 import numpy as np
 from .tools import find_split
 
-def compute(data,iso_dict,iso_list,eic_list):
+
+def compute(data, iso_dict, iso_list, eic_list):
     # New bound mass must contain self, otherwise don't keep climbing up
 
     # Initialize
     len_iso = len(iso_list)
-    cells_dict = {}
+    hpr_dict = {}
     bmass_dict = {}
-    bcell_dict = {}
-    eic_dict = dict(zip(iso_list,eic_list))
+    hbr_dict = {}
+    eic_dict = dict(zip(iso_list, eic_list))
 
     # Loop over isos
     for i in range(len_iso):
@@ -26,42 +27,43 @@ def compute(data,iso_dict,iso_list,eic_list):
 
         # for all leaf nodes
         # get the cells of self and inherit from immediate children
-        cells_dict[iso] = []
-        cells_dict[iso] += iso_dict[iso]
+        hpr_dict[iso] = []
+        hpr_dict[iso] += iso_dict[iso]
         for eic in eic_dict[iso]:
-            cells_dict[iso] += cells_dict[eic]
+            hpr_dict[iso] += hpr_dict[eic]
 
         # 2. Calculate Bound Mass
 
-        bcell_dict[iso],bmass_dict[iso] = bound_mass(data,cells_dict[iso],0.0)
+        hbr_dict[iso], bmass_dict[iso] = bound_mass(data, hpr_dict[iso], 0.0)
 
         # 3. Merge Logic
-        split_iso = find_split(iso,eic_dict)
-        if split_iso in bcell_dict[iso]:
+        split_iso = find_split(iso, eic_dict)
+        if split_iso in hbr_dict[iso]:
             # this iso can replace its children
             # because its starting point was bound and it joins the children
             # remove children from output cell dict
             for eic in eic_dict[iso]:
-                if eic in cells_dict.keys():
-                    cells_dict.pop(eic)
-                if eic in bcell_dict.keys():
-                    bcell_dict.pop(eic)
+                if eic in hpr_dict.keys():
+                    hpr_dict.pop(eic)
+                if eic in hbr_dict.keys():
+                    hbr_dict.pop(eic)
             # set this iso to be a leaf node
             eic_dict[iso] = []
         else:
             # this iso cannot replace its children
             if len(eic_dict[iso]) > 0:
-            # this iso has children so it is removed
-                if iso in cells_dict.keys():
-                    cells_dict.pop(iso)
-                if iso in bcell_dict.keys():
-                    bcell_dict.pop(iso)
-    return cells_dict,bcell_dict
+                # this iso has children so it is removed
+                if iso in hpr_dict.keys():
+                    hpr_dict.pop(iso)
+                if iso in hbr_dict.keys():
+                    hbr_dict.pop(iso)
+    return hpr_dict, hbr_dict
 
-def bound_mass(data,cells,e0):
+
+def bound_mass(data, cells, e0):
     # assume data is the following:
     cells = np.array(cells)
-    rho,phi,pressure,bpressure,velx,vely,velz = data
+    rho, phi, pressure, bpressure, velx, vely, velz = data
     pre_phi = phi.flatten()[cells]
     order = np.argsort(pre_phi)
     c_phi = pre_phi[order]
@@ -83,11 +85,11 @@ def bound_mass(data,cells,e0):
     c_com = 0.5 * (cc_x0*cc_x0 + cc_y0*cc_y0 + cc_z0*cc_z0)/cc_rho
 
     c_tot = np.cumsum((c_phi - c_phi0) * c_rho +
-                     + 1.5*c_p
-                     + c_b
-                     + 0.5 * c_rho * (c_x*c_x + c_y*c_y + c_z*c_z)
-                     ) - c_com
-    threshold = np.where(c_tot < e0*np.arange(1,1+len(c_tot)) )[0]
+                      + 1.5*c_p
+                      + c_b
+                      + 0.5 * c_rho * (c_x*c_x + c_y*c_y + c_z*c_z)
+                      ) - c_com
+    threshold = np.where(c_tot < e0*np.arange(1, 1+len(c_tot)))[0]
     if len(threshold) < 1:
         return cells[order][:0], 0.0
     else:
