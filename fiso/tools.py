@@ -44,44 +44,6 @@ def get_center(iso_id, phi):
     x0, y0, z0 = [phi.isel(center).coords[dim].data[()] for dim in ['x','y','z']]
     return x0, y0, z0
 
-def find_split(iso,eic_dict):
-    # For a given iso and child data eic_dict, find the point where iso splits
-    # eic_dict = dict(zip(iso_list,eic_list))
-    eics = eic_dict[iso]
-    le = len(eics)
-    
-    # If only 1 child, recurse
-    if le == 1:
-        return find_split(eics[0],eic_dict)
-    # 0 child leaf node, or multiple children, return self
-    else:
-        return iso
-
-def calc_leaf(iso_dict,iso_list,eic_list):
-    leaf_dict = {}
-    eic_dict = dict(zip(iso_list,eic_list))
-
-    # fsd = find-split-dict, for each split list isos that it owns
-    fsd = {}
-    for iso in iso_list:
-        if iso not in iso_dict:
-            continue
-        split = find_split(iso,eic_dict)
-        if split in fsd:
-            fsd[split].append(iso)
-        else:
-            fsd[split] = [split]
-
-
-    for split in fsd:
-        # split is a leaf node
-        if len(eic_dict[split]) == 0:
-            leaf_dict[split] = []
-            # but split also owns nodes above with only 1 child 
-            for subiso in fsd[split]:
-                if subiso in iso_dict:
-                    leaf_dict[split] += iso_dict[subiso]
-    return leaf_dict
 
 def get_energies(dat, cells, mode, pcn=None):
     """Calculate cumulative energies for all levels
