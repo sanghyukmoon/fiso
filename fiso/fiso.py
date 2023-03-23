@@ -32,7 +32,9 @@ def setup(data):
     timer('precompute neighbor indices')
 
     # Find local minima
+    # minima_flat is flattened boolian mask
     minima_flat = find_minima_global(data, boundary_flag).flatten()
+    # 1D flattened index array of potential minima
     idx_minima = np.where(minima_flat)[0]
     if verbose:
         print("Found {} minima".format(len(idx_minima)))

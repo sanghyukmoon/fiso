@@ -12,15 +12,15 @@ from .fiso import timer, setup
 verbose = True
 
 def find(data):
-    mfw,order,cutoff,pcn = setup(data)
+    idx_minima,order,cutoff,pcn = setup(data)
     #iso dict and labels setup
     iso_dict = {}
     labels = -np.ones(len(order),dtype=int) #indices are real index locations
     #inside loop, labels are accessed by labels[order[i]]
-    for mini in mfw:
+    for mini in idx_minima:
         iso_dict[mini] = deque([mini])
-    labels[mfw] = mfw
-    active_isos = set(mfw) #real index
+    labels[idx_minima] = idx_minima
+    active_isos = set(idx_minima) #real index
 
     # TS: tree specific
     iso_list = []
