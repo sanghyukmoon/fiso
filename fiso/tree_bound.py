@@ -66,14 +66,14 @@ def bound_region(data, cells, e0):
     cells = np.array(cells)
     rho, phi, pressure, bpressure, velx, vely, velz = data
     pre_phi = phi.flatten()[cells]
-    order = np.argsort(pre_phi)
-    c_phi = pre_phi[order]
-    c_rho = rho.flatten()[cells][order]
-    c_p = pressure.flatten()[cells][order]
-    c_b = bpressure.flatten()[cells][order]
-    c_x = velx.flatten()[cells][order]
-    c_y = vely.flatten()[cells][order]
-    c_z = velz.flatten()[cells][order]
+    cells_ordered = np.argsort(pre_phi)
+    c_phi = pre_phi[cells_ordered]
+    c_rho = rho.flatten()[cells][cells_ordered]
+    c_p = pressure.flatten()[cells][cells_ordered]
+    c_b = bpressure.flatten()[cells][cells_ordered]
+    c_x = velx.flatten()[cells][cells_ordered]
+    c_y = vely.flatten()[cells][cells_ordered]
+    c_z = velz.flatten()[cells][cells_ordered]
 
     c_phi0 = c_phi[-1]
 
@@ -92,7 +92,7 @@ def bound_region(data, cells, e0):
                       ) - c_com
     threshold = np.where(c_tot < e0*np.arange(1, 1+len(c_tot)))[0]
     if len(threshold) < 1:
-        return cells[order][:0]
+        return cells[cells_ordered][:0]
     else:
         index = threshold[-1]
-        return cells[order][:index]
+        return cells[cells_ordered][:index]

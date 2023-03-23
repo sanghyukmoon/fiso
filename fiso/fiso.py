@@ -14,7 +14,7 @@ def setup(data, verbose=True):
     timer()
     # Prepare data
     data_flat = data.flatten()
-    order = data_flat.argsort() # sort phi in ascending order.
+    cells_ordered = data_flat.argsort() # sort phi in ascending order.
     timer('sort')
 
     # Precompute neighbor indices
@@ -28,7 +28,7 @@ def setup(data, verbose=True):
     idx_minima = np.where(minima_flat)[0]
     if verbose:
         print("Found {} minima".format(len(idx_minima)))
-    return idx_minima, order, len(order), pcn
+    return idx_minima, cells_ordered, len(cells_ordered), pcn
 
 
 def find_minima_global(arr, boundary_flag='periodic'):

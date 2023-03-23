@@ -93,8 +93,8 @@ def get_energies(dat, cells, mode, pcn=None):
     gm1 = (5./3. - 1)
 
     # Sort variables in ascending order of potential
-    order = dat1d['phi'].argsort()
-    dat1d = {key: value[order] for key, value in dat1d.items()}
+    cells_ordered = dat1d['phi'].argsort()
+    dat1d = {key: value[cells_ordered] for key, value in dat1d.items()}
     cells = dat1d['cells']
 
     # Gravitational potential at the HPR boundary
@@ -267,8 +267,8 @@ def get_Etot(dat, cells, level, mode, pcn=None, return_all=False,
     gm1 = (5./3. - 1)
 
     # Sort variables in ascending order of potential
-    order = dat1d['phi'].argsort()
-    dat1d = {key: value[order] for key, value in dat1d.items()}
+    cells_ordered = dat1d['phi'].argsort()
+    dat1d = {key: value[cells_ordered] for key, value in dat1d.items()}
 
     # Gravitational potential at the HPR boundary
     phi0 = dat1d['phi'][-1]
@@ -276,7 +276,7 @@ def get_Etot(dat, cells, level, mode, pcn=None, return_all=False,
     # Select cells below a given level (inclusive)
     dat1d = {key: value[:level+1] for key, value in dat1d.items()}
     Vol = level*dV  # Volume of the selected region
-    cells_srtd = hpr_cells[order[:level+1]]
+    cells_srtd = hpr_cells[cells_ordered[:level+1]]
 
     # Calculate the center of momentum frame
     M = dat1d['rho'].sum()
@@ -297,7 +297,7 @@ def get_Etot(dat, cells, level, mode, pcn=None, return_all=False,
     if not cumulative:
         # Select a cell at a given level
         dat1d = {key: value[level] for key, value in dat1d.items()}
-        cells_srtd = hpr_cells[order[level]]
+        cells_srtd = hpr_cells[cells_ordered[level]]
         dV = Vol = 1
 
     # Kinetic energy

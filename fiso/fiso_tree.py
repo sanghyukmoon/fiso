@@ -15,11 +15,11 @@ verbose = True
 
 def find(data):
     # TODO(SMOON) Use more meaningful function name; add docstring
-    idx_minima, order, cutoff, pcn = setup(data)
+    idx_minima, cells_ordered, cutoff, pcn = setup(data)
     #iso dict and labels setup
     iso_dict = {}
-    labels = -np.ones(len(order), dtype=int) #indices are real index locations
-    #inside loop, labels are accessed by labels[order[i]]
+    labels = -np.ones(len(cells_ordered), dtype=int) #indices are real index locations
+    #inside loop, labels are accessed by labels[cells_ordered[i]]
     for mini in idx_minima:
         iso_dict[mini] = deque([mini])
     labels[idx_minima] = idx_minima
@@ -40,7 +40,7 @@ def find(data):
     min_active = 1
     timer()
     for i in indices:
-        cell = order[i] # loop through the cells, in the order of increasing potential
+        cell = cells_ordered[i] # loop through the cells, in the order of increasing potential
         ngblabels = set(labels[
             pcn[cell] # labels of neighbors of this cell. Note that potential minima are
         ])              # already labeled with their flattened index.
@@ -82,8 +82,8 @@ def find(data):
         else:
             # no lesser neighbors
             if cell in active_isos: # active_isos is a set of flattened indices of "active" isos
-                labels[cell] = cell # order is a flattend indices of all cells, sorted
-                                        # in the order of increasing potential. cell = order[i].
+                labels[cell] = cell # label this cell by its flattend index
+                                    # TODO(SMOON) isn't this already done?
     dt = timer('loop finished for ' + str(cutoff) + ' items')
     if verbose:
         print(str(dt/i) + ' per cell')
