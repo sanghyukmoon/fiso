@@ -58,7 +58,9 @@ def find(data, verbose=True):
             print("Cell i = {} have no lesser neighbors".format(i))
             if cell in active_isos: # active_isos is a set of flattened indices of "active" isos
                 labels[cell] = cell # label this cell by its flattend index
+                print("This cell {} is in fact one of active_isos. Label this cell by its flattend index".format(cell))
         elif flag_deactivate: # What is this?
+            print("Neighbors of Cell i = {} has been previously explored, but not isod. deactivate isos")
             # a neighbor is previously explored but not isod (boundary), deactivate isos
             _collide(active_isos, ngb_parents)
             min_active = 0
@@ -139,22 +141,22 @@ def _collide(active_isos, ngb_parents, *args):
             active_isos.discard(parent)
 
 
-def _merge(active_isos, parents, cell, iso_dict, child_dict, parent_dict,
+def _merge(active_isos, ngb_parents, cell, iso_dict, child_dict, parent_dict,
            iso_list, eic_list, labels):
-    # merge removes deactivated parents
-    # subsume removes deactivated parents
-    # hence, inactive parents must have come from collide
-    # first check for inactive parents which must have come from collide
-    # if any inactive parents, collide
-    # if all parents are active, first subsume smallest isos. 
-    if set(parents) <= active_isos:
-        _tree_subsume(active_isos, parents, cell, iso_dict, child_dict,
+    # merge removes deactivated ngb_parents
+    # subsume removes deactivated ngb_parents
+    # hence, inactive ngb_parents must have come from collide
+    # first check for inactive ngb_parents which must have come from collide
+    # if any inactive ngb_parents, collide
+    # if all ngb_parents are active, first subsume smallest isos.
+    if set(ngb_parents) <= active_isos:
+        _tree_subsume(active_isos, ngb_parents, cell, iso_dict, child_dict,
                       parent_dict, iso_list, eic_list, labels)
     else:
-        _collide(active_isos, parents)
+        _collide(active_isos, ngb_parents)
         return 
-    eic = list(set(parents) & active_isos)
-    # eic = list(parents)
+    eic = list(set(ngb_parents) & active_isos)
+    # eic = list(ngb_parents)
     # start new iso, assign it to be its own child and parent
     iso_dict[cell] = deque([cell])
     labels[cell] = cell
@@ -177,28 +179,28 @@ def _merge(active_isos, parents, cell, iso_dict, child_dict, parent_dict,
         active_isos.discard(iso)
     
 
-def _tree_subsume(active_isos, parents, cell, iso_dict, child_dict,
+def _tree_subsume(active_isos, ngb_parents, cell, iso_dict, child_dict,
                   parent_dict, iso_list, eic_list, labels):
     min_cells = 27
     eic_dict = dict(zip(iso_list, eic_list))
     subsume_set = set()
-    len_list = [None] * len(parents)
-    cell_list = [None] * len(parents)
-    for i in range(len(parents)):
-        parent = parents[i]
-        lidp = len(iso_dict[parent])
-        if lidp < min_cells:
-            # too small, try making bigger
+    ncells_list = [None] * len(ngb_parents)
+    cell_list = [None] * len(ngb_parents)
+    for i in range(len(ngb_parents)):
+        parent = ngb_parents[i]
+        ncells = len(iso_dict[parent])
+        if ncells < min_cells:
+            # too small, try making bigger TODO(SMOON) ????
             cell_list[i] = _recursive_members(iso_dict, eic_dict, parent)
-            lidp = len(cell_list[i])
-            if lidp < min_cells:
+            ncells = len(cell_list[i])
+            if ncells < min_cells:
                 # still too small 
                 subsume_set.add(i)
         else: # big enough
             cell_list[i] = iso_dict[parent]
-        len_list[i] = lidp
-    largest_i = np.argmax(len_list)
-    largest_parent = parents[largest_i]
+        ncells_list[i] = ncells
+    largest_i = np.argmax(ncells_list)
+    largest_parent = ngb_parents[largest_i]
     subsume_set.discard(largest_i)
     # add too small to largest
     for i in subsume_set:
@@ -207,8 +209,8 @@ def _tree_subsume(active_isos, parents, cell, iso_dict, child_dict,
         # relabel smaller iso cells to larger
         labels[cell_list[i]] = largest_parent
         # delete smaller iso
-        active_isos.remove(parents[i])
-        iso_dict.pop(parents[i])
+        active_isos.remove(ngb_parents[i])
+        iso_dict.pop(ngb_parents[i])
         # note any children of smaller iso would be too small 
         # and be previously subsumed
     
