@@ -55,12 +55,9 @@ def find(data, verbose=True):
         labels[cell] = -2 # I am now processed. TODO(SMOON) Why -2 instead of -1?
         if num_ngb_parents == 0:
             # No neighboring parent TODO(SMOON) when this can happen except for the very beginning?
-            print("Cell i = {} have no lesser neighbors".format(i))
             if cell in active_isos: # active_isos is a set of flattened indices of "active" isos
                 labels[cell] = cell # label this cell by its flattend index
-                print("This cell {} is in fact one of active_isos. Label this cell by its flattend index".format(cell))
         elif flag_deactivate: # What is this?
-            print("Neighbors of Cell i = {} has been previously explored, but not isod. deactivate isos")
             # a neighbor is previously explored but not isod (boundary), deactivate isos
             _collide(active_isos, ngb_parents)
             min_active = 0
@@ -108,9 +105,7 @@ def calc_leaf(iso_dict, iso_list, eic_list):
         else:
             fsd[split] = [split]
 
-
     for split in fsd:
-        # split is a leaf node
         if len(eic_dict[split]) == 0:
             leaf_dict[split] = []
             # but split also owns nodes above with only 1 child
@@ -203,6 +198,7 @@ def _tree_subsume(active_isos, ngb_parents, cell, iso_dict, child_dict,
     largest_parent = ngb_parents[largest_i]
     subsume_set.discard(largest_i)
     # add too small to largest
+    # loop through all parents except for the largest one
     for i in subsume_set:
         # add smaller iso cells to larger dict
         iso_dict[largest_parent] += cell_list[i]
