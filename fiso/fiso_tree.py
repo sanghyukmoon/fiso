@@ -8,7 +8,7 @@ from itertools import islice
 import numpy as np
 from scipy.ndimage import minimum_filter
 from .tools import timer
-from .edge import precompute_neighbor
+from .boundary import precompute_neighbor
 
 
 def construct_tree(data, boundary_flag, verbose=True):

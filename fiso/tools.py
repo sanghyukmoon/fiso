@@ -1,6 +1,6 @@
 import numpy as np
 import xarray as xr
-from .edge import get_edge_cells
+from .boundary import get_edge_cells
 import time
 
 
