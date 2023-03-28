@@ -1,6 +1,10 @@
 # FISO
 
-Fast ISOcontours
+Refactored version of Fast ISOcontours developed by Alwin Mao. Original repo: https://github.com/alwinm/fiso
+
+
+# Reference
+[Mao, Ostriker, & Kim 2020, ApJ, 898](https://ui.adsabs.harvard.edu/abs/2020ApJ...898...52M/abstract)
 
 
 
@@ -21,6 +25,12 @@ HBP, HBR = compute(Phi, iso_dict, iso_list, eic_list)
 ```
 
 # Notes to developers
+
+## Wanings and TODOs
+* There is an inconsistency in defining the leaf in `calc_leaf` and `compute`.
+* The method to find leaf in `compute` seems to be erroneous.
+* It would be much better to design a class instead of dispersed fucntions.
+* `compute` does not seem to find largest possible HBR, in contrast to what is described in the method paper.
 
 ## Terminology
 * iso_dict : This is a dictionary containing all **structures** or **iso**s. Keys are 1D flattend indices of the structure-generating cell (the critical points of the gravitational potentials). Values correspond to the 1D flattend indices of the cells belong to those structures.
