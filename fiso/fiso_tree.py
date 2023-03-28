@@ -148,23 +148,26 @@ def calc_leaf(iso_dict, iso_list, eic_list):
     eic_dict = dict(zip(iso_list, eic_list))
 
     # fsd = find-split-dict, for each split list isos that it owns
-    fsd = {}
+    split_iso_dict = {}
     for iso in iso_list:
-        if iso not in iso_dict:
-            continue
-        split = _find_split(iso, eic_dict)
-        if split in fsd:
-            fsd[split].append(iso)
-        else:
-            fsd[split] = [split]
+        if iso in iso_dict and len(eic_dict[iso]) == 0 and len(iso_dict[iso]) >= 27:
+            leaf_dict[iso] = iso_dict[iso]
 
-    for split in fsd:
-        if len(eic_dict[split]) == 0:
-            leaf_dict[split] = []
-            # but split also owns nodes above with only 1 child
-            for subiso in fsd[split]:
-                if subiso in iso_dict:
-                    leaf_dict[split] += iso_dict[subiso]
+# TODO(SMOON) not sure we want previous version
+#        split_iso = _find_split(iso, eic_dict)
+#        if split_iso in split_iso_dict:
+#            split_iso_dict[split_iso].append(iso)
+#        else:
+#            split_iso_dict[split_iso] = [split_iso]
+#
+#    for iso in split_iso_dict:
+#        if len(eic_dict[iso]) == 0:
+#            leaf_dict[iso] = []
+#            # but split_iso also owns nodes above with only 1 child
+#            for subiso in split_iso_dict[iso]:
+#                if subiso in iso_dict:
+#                    leaf_dict[iso] += iso_dict[subiso]
+
     return leaf_dict
 
 

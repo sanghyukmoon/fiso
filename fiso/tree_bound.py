@@ -16,7 +16,7 @@ def compute(data, iso_dict, iso_list, eic_list):
     for i in range(len_iso):
         # 1. Get all member cells of iso
         iso = iso_list[i]
-        if iso not in iso_dict.keys():
+        if iso not in iso_dict():
             # must be in iso_dict
             continue
 
