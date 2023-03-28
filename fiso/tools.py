@@ -69,7 +69,7 @@ def get_energies(dat, cells, mode, pcn=None):
     energies : dict
         Integrated energies and effective radius at each level
     """
-    # Get hydro variables for a selected HPR
+    # Get hydro variables for a selected HBP
     cells = np.array(cells)
     dat = dat.transpose('z', 'y', 'x')
     dat1d = dict(cells=cells,
@@ -97,7 +97,7 @@ def get_energies(dat, cells, mode, pcn=None):
     dat1d = {key: value[cells_ordered] for key, value in dat1d.items()}
     cells = dat1d['cells']
 
-    # Gravitational potential at the HPR boundary
+    # Gravitational potential at the HBP boundary
     phi0 = dat1d['phi'][-1]
 
     # Calculate the center of momentum frame
@@ -229,7 +229,7 @@ def get_energies(dat, cells, mode, pcn=None):
 
 def get_Etot(dat, cells, level, mode, pcn=None, return_all=False,
              cumulative=True):
-    """Calculate total energy below a given isocontour level for a given HPR
+    """Calculate total energy below a given isocontour level for a given HBP
 
     Arguments
     ---------
@@ -246,7 +246,7 @@ def get_Etot(dat, cells, level, mode, pcn=None, return_all=False,
     Etot: float
         Total energy-like contained in the isocontour level
     """
-    # Get hydro variables for a selected HPR
+    # Get hydro variables for a selected HBP
     hpr_cells = np.array(cells)
     dat = dat.transpose('z', 'y', 'x')
     dat1d = dict(
@@ -270,7 +270,7 @@ def get_Etot(dat, cells, level, mode, pcn=None, return_all=False,
     cells_ordered = dat1d['phi'].argsort()
     dat1d = {key: value[cells_ordered] for key, value in dat1d.items()}
 
-    # Gravitational potential at the HPR boundary
+    # Gravitational potential at the HBP boundary
     phi0 = dat1d['phi'][-1]
 
     # Select cells below a given level (inclusive)

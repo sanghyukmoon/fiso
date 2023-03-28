@@ -27,7 +27,7 @@ def compute(data, iso_dict, iso_list, eic_list):
         # for all leaf nodes
         # get the cells of self and inherit from immediate children
         # TODO(SMOON) there is some inconsistency between these lines and the
-        # similar part in calc_leaf, which might have caused the leaf-HPR bug.
+        # similar part in calc_leaf, which might have caused the leaf-HBP bug.
         hpr_dict[iso] = []
         hpr_dict[iso] += iso_dict[iso]
         for eic in eic_dict[iso]:
