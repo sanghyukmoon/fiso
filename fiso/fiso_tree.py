@@ -6,11 +6,12 @@
 from collections import deque
 from itertools import islice
 import numpy as np
-from .fiso import setup
+from scipy.ndimage import minimum_filter
 from .tools import timer
+from .edge import precompute_neighbor
 
 
-def find(data, boundary_flag, verbose=True):
+def construct_tree(data, boundary_flag, verbose=True):
     """Construct isocontour tree
 
     Parameters
@@ -23,34 +24,57 @@ def find(data, boundary_flag, verbose=True):
 
     Returns
     -------
-    local_min : array_like
-        Bolean array that selects local minima
+    iso_dict : dict
+        Dictionary containing all isos.
+    labels : list
+    iso_list : list
+    eic_list : list
     """
-    # TODO(SMOON) Use more meaningful function name; add docstring
-    idx_minima, cells_ordered, cutoff, pcn = setup(data, boundary_flag)
-    #iso dict and labels setup
+
+    timer()
+    # Prepare data
+    cells_ordered = data.flatten().argsort() # sort phi in ascending order.
+    Ncells = len(cells_ordered)
+    timer('sort')
+
+    # Precompute neighbor indices
+    pcn = precompute_neighbor(data.shape, boundary_flag, corner=True)
+    timer('precompute neighbor indices')
+
+    # Find local minima
+    # minima_flat is flattened boolian mask
+    minima_flat = find_minima_global(data, boundary_flag).flatten()
+    # 1D flattened index array of potential minima
+    idx_minima = np.where(minima_flat)[0]
+    if verbose:
+        print("Found {} minima".format(len(idx_minima)))
+
+
+    # iso dict and labels setup
     iso_dict = {}
-    labels = -np.ones(len(cells_ordered), dtype=int) #indices are real index locations
-    #inside loop, labels are accessed by labels[cells_ordered[i]]
+    labels = -np.ones(Ncells, dtype=int) # indices are real index locations
+    # inside loop, labels are accessed by labels[cells_ordered[i]]
     for mini in idx_minima:
         iso_dict[mini] = deque([mini])
     labels[idx_minima] = idx_minima
-    active_isos = set(idx_minima) #real index
+    active_isos = set(idx_minima)
 
     iso_list = []
-    eic_list = [] #exclusive immediate children
+    eic_list = [] # exclusive immediate children
     parent_dict = {}
     child_dict = {}
     for iso in active_isos:
-        parent_dict[iso] = iso # The potential minimum "parents" the cells contained in the leaf
-        child_dict[iso] = deque([iso]) # The cells contained in the leaf are child?
+        # The potential minimum "parents" the cells contained in the leaf
+        parent_dict[iso] = iso
+        # The cells contained in the leaf are childs of this iso
+        child_dict[iso] = deque([iso])
         iso_list.append(iso)
         eic_list.append([])
 
-    indices = iter(range(cutoff))
 
     min_active = 1
     timer()
+    indices = iter(range(Ncells))
     for i in indices:
         cell = cells_ordered[i] # loop through the cells, in the order of increasing potential
         ngb_labels = set(labels[
@@ -77,7 +101,7 @@ def find(data, boundary_flag, verbose=True):
             _collide(active_isos, ngb_parents)
             min_active = 0
             if len(active_isos) == min_active:
-                next(islice(indices, cutoff-i-1, cutoff-i-1), None)
+                next(islice(indices, Ncells-i-1, Ncells-i-1), None)
         elif num_ngb_parents == 1:
             # only 1 neighbor, inherit
             parent = ngb_parents[0] # this is a flattend index of the parenting cell of neighbor
@@ -89,23 +113,37 @@ def find(data, boundary_flag, verbose=True):
             _merge(active_isos, ngb_parents, cell, iso_dict, child_dict,
                    parent_dict, iso_list, eic_list, labels)
             if verbose:
-#                print(i,' of ',cutoff,' cells ',
-#                      len(active_isos),' minima')
-                print("Processing cell i = {} among {} cells: merge is triggered."\
-                       " len(active_isos) = {}".format(i, cutoff, len(active_isos)))
+                print("i = {} of {} cells: Reaching critical point."\
+                       " len(active_isos) = {}".format(i, Ncells, len(active_isos)))
             if len(active_isos) == min_active:
                 # skip up to next iso or end
-                next(islice(indices, cutoff-i-1, cutoff-i-1), None)
+                next(islice(indices, Ncells-i-1, Ncells-i-1), None)
 
-    dt = timer('loop finished for ' + str(cutoff) + ' items')
+    dt = timer('loop finished for {} items'.format(Ncells))
     if verbose:
-        print(str(dt/i) + ' per cell')
+        print('{} per cell'.format(dt/i))
     if verbose:
-        print(str(dt/cutoff) + ' per total cell')
+        print('{} per total cell'.format(dt/Ncells))
     return iso_dict, labels, iso_list, eic_list
 
 
 def calc_leaf(iso_dict, iso_list, eic_list):
+    """Calculate leaf HBPs
+
+    Parameters
+    ----------
+    iso_dict : dict
+        iso_dict returned by construct_tree
+    iso_list : list
+        iso_list returned by construct_tree
+    eic_list : list
+        eic_list returned by construct_tree
+
+    Returns
+    -------
+    leaf_dict : dict
+        Dictionary containing all leaf HBPs.
+    """
     leaf_dict = {}
     eic_dict = dict(zip(iso_list, eic_list))
 
@@ -129,6 +167,31 @@ def calc_leaf(iso_dict, iso_list, eic_list):
                     leaf_dict[split] += iso_dict[subiso]
     return leaf_dict
 
+
+def find_minima_global(arr, boundary_flag):
+    """Find local minima of the input array
+
+    Parameters
+    ----------
+    arr : array_like
+        Input array
+    boundary_flag: str
+        boundary flag determines how the input array is extended when the
+        stencil for finding the local minima overlaps a border.
+
+    Returns
+    -------
+    local_min : array_like
+        Bolean array that selects local minima
+    """
+    if boundary_flag == 'periodic':
+        mode = 'wrap'
+    elif boundary_flag == 'outflow':
+        mode = 'reflect'
+    else:
+        raise Exception("unknown boundary mode")
+    local_min = (arr == minimum_filter(arr, size=3, mode=mode))
+    return local_min
 
 def _find_split(iso, eic_dict):
     # For a given iso and child data eic_dict, find the point where iso splits
