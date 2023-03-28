@@ -15,7 +15,8 @@ from fiso.tree_bound import compute
 
 # Construct isocontour tree
 # Phi is a numpy.ndarray of gravitational potential
-iso_dict, labels, iso_list, eic_list = construct_tree(Phi)
+boundary_flag = 'periodic' # periodic or outflow
+iso_dict, labels, iso_list, eic_list = construct_tree(Phi, boundary_flag)
 
 # Calculate leaf nodes (structures that contains only 1 local minima)
 leaf = calc_leaf(iso_dict, iso_list, eic_list)
