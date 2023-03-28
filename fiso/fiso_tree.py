@@ -10,9 +10,24 @@ from .fiso import setup
 from .tools import timer
 
 
-def find(data, verbose=True):
+def find(data, boundary_flag, verbose=True):
+    """Construct isocontour tree
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Input array
+    boundary_flag: str (periodic | outflow)
+        Determines how the input array is extended when the
+        stencil for finding the local minima overlaps a border.
+
+    Returns
+    -------
+    local_min : array_like
+        Bolean array that selects local minima
+    """
     # TODO(SMOON) Use more meaningful function name; add docstring
-    idx_minima, cells_ordered, cutoff, pcn = setup(data)
+    idx_minima, cells_ordered, cutoff, pcn = setup(data, boundary_flag)
     #iso dict and labels setup
     iso_dict = {}
     labels = -np.ones(len(cells_ordered), dtype=int) #indices are real index locations

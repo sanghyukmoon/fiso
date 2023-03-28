@@ -27,17 +27,17 @@ def get_edge_cells(cells, pcn):
     return edge_cells
 
 
-def precompute_neighbor(shape, corner=True, boundary_flag='periodic'):
+def precompute_neighbor(shape, boundary_flag, corner=True):
     """Precompute neighbor indices
 
     Parameters
     ----------
     shape : tuple
         shape of the input data
+    boundary_flag: str
+        Flag for boundary condition. Affects how to set neighbors of the edge cells.
     corner : Boolean, optional
         If true, the corner cells are counted as neighbors (26 neighbors in total)
-    boundary_flag: str, optional
-        Flag for boundary condition. Affects how to set neighbors of the edge cells.
 
     Returns
     -------
@@ -118,13 +118,15 @@ def _boundary_i_bcn(shape, dtype, offsets, corner, boundary_flag):
     return boundary_indices,bpcn
 
 
-def _boundary_pcn(coords, offsets, shape, corner, boundary_flag='periodic'):
+def _boundary_pcn(coords, offsets, shape, corner, boundary_flag):
     if boundary_flag=='periodic':
         mode='wrap'
-    else:
+    elif boundary_flag=='outflow':
         mode='clip'
+    else:
+        raise Exception("unknown boundary mode")
     newcoords = coords[:,:,None] + np.transpose(offsets)[:,None,:]
-    output = np.ravel_multi_index(newcoords,shape,mode=mode)
+    output = np.ravel_multi_index(newcoords, shape, mode=mode)
     return output
 
 

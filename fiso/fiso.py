@@ -4,12 +4,24 @@ from .edge import precompute_neighbor
 from .tools import timer
 import itertools
 
-# how to determine neighbors of boundary cells
-boundary_flag = 'periodic'
-
 #TODO(SMOON) Rearrangment of modules is warranted.
 
-def setup(data, verbose=True):
+def setup(data, boundary_flag, verbose=True):
+    """Setup fiso
+
+    Parameters
+    ----------
+    data : numpy.ndarray
+        Input array
+    boundary_flag: str (periodic | outflow)
+        Determines how the input array is extended when the
+        stencil for finding the local minima overlaps a border.
+
+    Returns
+    -------
+    local_min : array_like
+        Bolean array that selects local minima
+    """
     # TODO(SMOON) use more meaningful function name
     timer()
     # Prepare data
@@ -31,14 +43,14 @@ def setup(data, verbose=True):
     return idx_minima, cells_ordered, len(cells_ordered), pcn
 
 
-def find_minima_global(arr, boundary_flag='periodic'):
+def find_minima_global(arr, boundary_flag):
     """Find local minima of the input array
 
     Parameters
     ----------
     arr : array_like
         Input array
-    boundary_flag: str, optional
+    boundary_flag: str
         boundary flag determines how the input array is extended when the
         stencil for finding the local minima overlaps a border.
 
@@ -47,10 +59,10 @@ def find_minima_global(arr, boundary_flag='periodic'):
     local_min : array_like
         Bolean array that selects local minima
     """
-    if boundary_flag == 'clip':
-        mode = 'reflect'
-    elif boundary_flag == 'periodic':
+    if boundary_flag == 'periodic':
         mode = 'wrap'
+    elif boundary_flag == 'outflow':
+        mode = 'reflect'
     else:
         raise Exception("unknown boundary mode")
     local_min = (arr == minimum_filter(arr, size=3, mode=mode))
