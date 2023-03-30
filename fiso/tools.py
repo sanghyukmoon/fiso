@@ -36,15 +36,16 @@ def filter_var(var, iso_dict=None, cells=None):
     return out
 
 
-def get_center(iso_id, phi):
-    """return coordinates at the potential minimum
-    Parameters
-    ----------
-    iso_id : int
-    dat : xarray.Dataset
+def get_coords_minimum(arr):
+    """returns coordinates at the minimum of arr
+
+    Args:
+        arr : xarray.DataArray instance
+    Returns:
+        x0, y0, z0
     """
-    center = phi.argmin(...)
-    x0, y0, z0 = [phi.isel(center).coords[dim].data[()]
+    center = arr.argmin(...)
+    x0, y0, z0 = [arr.isel(center).coords[dim].data[()]
                   for dim in ['x', 'y', 'z']]
     return x0, y0, z0
 
