@@ -4,7 +4,7 @@ from .boundary import get_edge_cells
 import time
 
 
-def filter_var(var, iso_dict=None, cells=None):
+def filter_var(var, iso_dict=None, cells=None, fill_value=np.nan):
     """Set var = 0 outside the region defined by iso_dict
 
     Parameters
@@ -29,7 +29,7 @@ def filter_var(var, iso_dict=None, cells=None):
         for value in iso_dict.values():
             cells += list(value)
     var_flat = var.data.flatten()
-    out = np.full(len(var_flat), np.nan)
+    out = np.full(len(var_flat), fill_value)
     out[cells] = var_flat[cells]
     out = out.reshape(var.shape)
     out = xr.DataArray(data=out, coords=var.coords, dims=var.dims)
