@@ -25,6 +25,25 @@ leaf = calc_leaf(iso_dict, iso_list, eic_list)
 HBP, HBR = compute(Phi, iso_dict, iso_list, eic_list)
 ```
 
+# Using FISO with pyathena
+Examples of using FISO with pyathena package can be found in `smoon` branch of pyathena (https://github.com/jeonggyukim/pyathena/tree/smoon).
+
+```
+import pyathena as pa
+from pyathena.core_formation import tools
+
+s = pa.LoadSim('path_to_simulation')
+ds = s.load_hdf5(num)
+
+# mask cells contained in selected iso
+iso = 1305823 # iso id
+rho_core = tools.apply_fiso_mask(ds.dens, iso_dict=leaf_dict, isos=iso) # select cells in leaf_dict[iso]
+
+# calculate cumulative energies as a function of effective radius
+engs = tools.calculate_cum_energies(ds, leaf_dict, iso)
+plt.plot(engs['Reff'], engs['Etot'])
+```
+
 # Notes to developers
 
 ## Wanings and TODOs
