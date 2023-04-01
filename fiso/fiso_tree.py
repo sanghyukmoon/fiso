@@ -7,8 +7,8 @@ from collections import deque
 from itertools import islice
 import numpy as np
 from scipy.ndimage import minimum_filter
-from .tools import timer
-from .boundary import precompute_neighbor
+from fiso.tools import timer
+from fiso import boundary
 
 
 def construct_tree(data, boundary_flag, verbose=True):
@@ -38,7 +38,7 @@ def construct_tree(data, boundary_flag, verbose=True):
     timer('sort')
 
     # Precompute neighbor indices
-    pcn = precompute_neighbor(data.shape, boundary_flag, corner=True)
+    pcn = boundary.precompute_neighbor(data.shape, boundary_flag, corner=True)
     timer('precompute neighbor indices')
 
     # Find local minima
@@ -153,7 +153,7 @@ def calc_leaf(iso_dict, iso_list, eic_list):
     for iso in iso_list:
         if iso not in iso_dict:
             continue
-        split_iso = _find_split(iso, eic_dict)
+        split_iso = find_split(iso, eic_dict)
         if split_iso in split_iso_dict:
             split_iso_dict[split_iso].append(iso)
         else:
@@ -195,7 +195,7 @@ def find_minima_global(arr, boundary_flag):
     local_min = (arr == minimum_filter(arr, size=3, mode=mode))
     return local_min
 
-def _find_split(iso, eic_dict):
+def find_split(iso, eic_dict):
     # For a given iso and child data eic_dict, find the point where iso splits
     # eic_dict = dict(zip(iso_list,eic_list))
     eics = eic_dict[iso]
@@ -203,7 +203,7 @@ def _find_split(iso, eic_dict):
 
     # If only 1 child, recurse
     if le == 1:
-        return _find_split(eics[0], eic_dict)
+        return find_split(eics[0], eic_dict)
     # 0 child leaf node, or multiple children, return self
     else:
         return iso
